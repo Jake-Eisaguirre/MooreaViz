@@ -1,0 +1,162 @@
+#-----------------------------------------------------------------------------------------------------------------------------
+#Landscape-scape scale patterns of nutrient enrichment in a coral reef ecosystem: implications for coral to algae phase shifts
+#Adam et al.
+#1-Rainfall Patterns
+#--------------------------------------------------------------------------------------------------------------------------------
+
+#This script calculates and plots 30 day moving sums of precipitation measured from October 2015 throuogh September 2016 at a meteorological station in Faaa, Tahiti
+
+#Initialization
+library(lubridate)
+library(ggplot2)
+library(zoo)
+
+#Data----------------------------------------------------------------------------
+#Data from meteorological station in Faaa, Tahiti (Global Historical Climatology Network ID:FP000091938), ~ 15 km east of Moorea. 
+#Data accessed April 10, 2018
+
+rainfall<-read.csv("1309453.csv", header = T)
+
+#Check data structure and variable types
+
+str(rainfall)
+
+#Get DATE in date format
+
+rainfall$DATE<-as.character(rainfall$DATE)
+rainfall$DATE<-parse_date_time(rainfall$DATE, orders = "mdy")
+
+ggplot(rainfall, aes(DATE, PRCP)) + geom_path()+theme_bw()
+
+#---------------------------Calculate 30-day rolling sum and plot patterns
+
+rolling_sum_rainfall<-rollsum(rainfall$PRCP,30)
+
+vec<-as.vector(rep(99,29))
+
+vec[vec==99]<-NA
+
+vec<-as.data.frame(vec)
+
+colnames(vec)<-c("rolling_sum_rainfall")
+
+rolling_sum_rainfall<-as.data.frame(rolling_sum_rainfall)
+
+rolling_sum_rainfall<-rbind(vec, rolling_sum_rainfall)
+
+rainfall<-cbind(rainfall, rolling_sum_rainfall)
+
+ggplot(rainfall, aes(DATE, PRCP))+geom_line(aes(DATE,rolling_sum_rainfall),color="red")+theme_bw()
+
+rainfall$DATE<-as.Date(rainfall$DATE)
+
+ggplot(rainfall[30:367,], aes(DATE, PRCP))+geom_path(aes(DATE,rolling_sum_rainfall),color="red")+theme_bw()+geom_smooth(aes(DATE,rolling_sum_rainfall), span = 0.2)+scale_x_date(date_breaks = "1 month")
+
+
+#---------------------------------------------Calculate means for each of the 90 days periods preceding sampling
+
+#Sampling was conducted over ~ 3 weeks during each of the three sampling periods (January: January 8 to January 28, May: May 8 to May 14, August: July 26 to September 1).  
+
+#Calculate the mean rainfall over the 90 days preceding the midpoint of the sampling interval for each sample period
+
+jan_sample<-rainfall[rainfall$DATE >= "2015-10-21" & rainfall$DATE <= "2016-01-18",]
+
+mean_jan<-mean(jan_sample$rolling_sum_rainfall)
+
+
+may_sample<-rainfall[rainfall$DATE >= "2016-02-12" & rainfall$DATE <= "2016-05-11",]
+
+mean_may<-mean(may_sample$rolling_sum_rainfall)
+
+
+july_sample<-rainfall[rainfall$DATE >= "2016-05-16" & rainfall$DATE <= "2016-08-13",]
+
+july_mean<-mean(july_sample$rolling_sum_rainfall)
+
+
+#Add means to master dataframe in order to plot on same graph
+
+jan_sample<-cbind(jan_sample, mean_jan)
+
+may_sample<-cbind(may_sample, mean_may)
+
+july_sample<-cbind(july_sample, july_mean)
+
+
+rainfall<-merge(rainfall, jan_sample[,c(6,10)], by = "DATE", all.x = T)
+
+rainfall<-merge(rainfall, may_sample[,c(6,10)], by = "DATE", all.x = T)
+
+rainfall<-merge(rainfall, july_sample[,c(6,10)], by = "DATE", all.x = T)
+
+
+#Plot patterns
+
+ggplot(rainfall, aes(DATE, PRCP))+
+	geom_smooth(aes(DATE,rolling_sum_rainfall), size = 2, span = 0.2, se = F)+
+	geom_path(aes(DATE, mean_jan),color="black", size = 2)+
+	geom_path(aes(DATE, mean_may),color="black", size = 2)+
+	geom_path(aes(DATE, july_mean),color="black", size = 2)+
+	theme_linedraw(base_size = 16)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+ 
+	ylab("Precipitation (mm)")+ 
+	xlab("Date")+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+
+#--------------------------------------------Calculate means for each of the 45 day periods preceding sampling
+
+jan_sample<-rainfall[rainfall$DATE >= "2015-12-05" & rainfall$DATE <= "2016-01-18",]
+
+mean_jan45<-mean(jan_sample$rolling_sum_rainfall)
+
+
+may_sample<-rainfall[rainfall$DATE >= "2016-03-28" & rainfall$DATE <= "2016-05-11",]
+
+mean_may45<-mean(may_sample$rolling_sum_rainfall)
+
+
+july_sample<-rainfall[rainfall$DATE >= "2016-06-30" & rainfall$DATE <= "2016-08-13",]
+
+july_mean45<-mean(july_sample$rolling_sum_rainfall)
+
+
+#Now add to master dataframe in order to plot on same graph
+
+jan_sample<-cbind(jan_sample, mean_jan45)
+
+may_sample<-cbind(may_sample, mean_may45)
+
+july_sample<-cbind(july_sample, july_mean45)
+
+
+rainfall<-merge(rainfall, jan_sample[,c(1,13)], by = "DATE", all.x = T)
+
+rainfall<-merge(rainfall, may_sample[,c(1,13)], by = "DATE", all.x = T)
+
+rainfall<-merge(rainfall, july_sample[,c(1,13)], by = "DATE", all.x = T)
+
+
+#Plot patterns
+
+ggplot(rainfall, aes(DATE, PRCP))+
+	geom_smooth(aes(DATE,rolling_sum_rainfall), size = 2, span = 0.2, se = F)+
+	geom_path(aes(DATE, mean_jan45),color="black", size = 2)+
+	geom_path(aes(DATE, mean_may45),color="black", size = 2)+
+	geom_path(aes(DATE, july_mean45),color="black", size = 2)+
+	theme_linedraw(base_size = 16)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+ 
+	ylab("Precipitation (mm)")+ 
+	xlab("Date")+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+
+
+
+
+
+

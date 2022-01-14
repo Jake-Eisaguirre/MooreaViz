@@ -1,0 +1,386 @@
+#-----------------------------------------------------------------------------------------------------------------------------
+#Landscape-scape scale patterns of nutrient enrichment in a coral reef ecosystem: implications for coral to algae phase shifts
+#Adam et al.
+#7-Benthic_dynamics
+#--------------------------------------------------------------------------------------------------------------------------------
+
+#This script analyzes the dynamics of macroalgae and coral at the six long-term MCR LTER backreef sites and relates changes in macroalgae and coral to the long-term nutrient environment and long-term patterns of herbivore biomass
+
+#Initialization
+
+library(ggplot2)
+library(tidyr)
+library(gdata)
+library(RColorBrewer)
+
+#Data----------------------------------------------------------------------------
+#Data from Moorea Coral Reef LTER core time series of benthic algae and MCR LTER core time series of reef fishes
+#http://mcrlter.msi.ucsb.edu/cgi-bin/showDataset.cgi?docid=knb-lter-mcr.8
+#http://mcrlter.msi.ucsb.edu/cgi-bin/showDataset.cgi?docid=knb-lter-mcr.6
+#Carpenter, R of Moorea Coral Reef LTER. 2019. MCR LTER: Coral Reef: Long-term Population and Community Dynamics: Benthic Algae and Other Community Components, ongoing since 2005. knb-lter-mcr.8.31 
+#Brooks, A of Moorea Coral Reef LTER. 2019. MCR LTER: Coral Reef: Long-term Population and Community Dynamics: Fishes, ongoing since 2005. knb-lter-mcr.6.57
+#Benthic data accessed May 24, 2018; Fish data accessed March 17, 2020
+#Additional data generated for this study (knb-lter-mcr.5038)
+
+Algae<-read.csv("MCR_LTER_Annual_Survey_Benthic_Cover_20180524.csv", header = T)
+
+Fish_Long = read.csv("Annual_Fish_Survey_20180612.csv", header = TRUE)
+
+Percent_N<-read.csv("N_site_marginal_means.csv", header = T)
+
+cat<-read.csv("Benthic_categories.csv", header = T)
+
+#Check data structure and variable types
+
+str(Algae)
+str(Fish_long)
+str(Percent_N)
+str(cat)
+
+
+#-------------------------------------Benthic data-------------------------------------------------
+#Go from long to wide format
+
+Algae_wide<-spread(Algae, Taxonomy_Substrate_Functional_Group, Percent_Cover, fill = 0)
+
+#Add up all algal taxa, excluding CCA, turf algae, and cyanobacteria
+
+Macroalgae_sum<-rowSums(Algae_wide[,c(8,9,11,12,14,16:27,34:57,59:62, 64:67,70,72:79,82,89:91)])
+
+Algae_wide<-cbind(Algae_wide, Macroalgae_sum)
+
+#Convert data frame from wide format back to long format
+
+Algae_long<-gather(Algae_wide, key = Taxa, value = Cover, 8:92, na.rm = F)
+
+#Remove spaces in names
+
+Algae_long$Taxa<-make.names(Algae_long$Taxa, unique = F)
+
+Algae_long$Taxa<-as.factor(Algae_long$Taxa)
+
+#Replace nas with 0s
+
+Algae_long$Cover[is.na(Algae_long$Cover)] <- 0
+
+
+
+#Merge with benthic categories for plotting
+
+Algae_long<-merge(Algae_long, cat, by.x = "Taxa", by.y = "Taxa", all.y = T)
+
+#Get sum cover of benthic categories for each site, year, habitat
+
+Algae_cat_long<-aggregate(Algae_long$Cover, by = list(Algae_long$Year, Algae_long$Site, Algae_long$Habitat, Algae_long$Transect, Algae_long$Quadrat, Algae_long$Category), sum)
+
+colnames(Algae_cat_long)<-c("Year", "Site", "Habitat", "Transect", "Quadrat", "Taxa", "Cover")
+
+
+
+#Get mean cover for each benthic category for each site, year, habitat
+
+mean_algae<-aggregate(Algae_cat_long$Cover, by = list(Algae_cat_long$Year, Algae_cat_long$Site, Algae_cat_long$Habitat, Algae_cat_long$Taxa), mean)
+
+colnames(mean_algae)<-c("Year", "Site", "Habitat",  "Taxa", "Mean_cover")
+
+
+
+##Rescale means to amount of hard substrate
+
+#First subset to get mean soft substrate
+
+mean_soft<-subset(mean_algae, mean_algae$Taxa == "Soft_substrate")
+
+mean_soft<-mean_soft[,c(1:3,5)]
+
+colnames(mean_soft)<-c("Year", "Site", "Habitat", "Mean_Soft")
+
+##Now merge with mean_algae df in order to calculate percent cover per available hard substrate
+
+mean_algae<-merge(mean_algae, mean_soft, by = c("Year", "Site", "Habitat"), all.x = T)
+
+Mean_cover_hard<-100*(mean_algae$Mean_cover)/(100-mean_algae$Mean_Soft)
+
+mean_algae<-cbind(mean_algae, Mean_cover_hard)
+
+mean_algae<-subset(mean_algae, mean_algae$Taxa !=  "Soft_substrate")
+
+
+#Subset just the backreef data
+
+mean_algae_br<-subset(mean_algae, mean_algae$Habitat == "Backreef")
+
+#Remove 2005-2006, which was surveyed at a different time of year
+
+mean_algae_br<-subset(mean_algae_br, mean_algae_br$Year !=  "2005-2006")
+
+#Remove categories we want to exclude from plotting
+
+mean_algae_br_sub<-drop.levels(subset(mean_algae_br, mean_algae_br$Taxa != "Macroalgae_sum" & mean_algae_br$Taxa != "No_data" & mean_algae_br$Taxa != "Soft_substrate"))
+
+
+##Reassign factor levels for plotting
+
+
+mean_algae_br_sub$Taxa<-factor(mean_algae_br_sub$Taxa, levels = c("Amansia.rhodantha","Turbinaria.ornata","Sargassum.pacificum","Dictyota.bartayresiana", "Other_macroalgae", "Other","Turf_CCA_Bare", "Coral" ))
+
+
+ggplot(mean_algae_br_sub, aes(Year, Mean_cover_hard, color = Taxa, group= Taxa))+
+	geom_area(aes(fill=Taxa, color = NULL), stat = "identity")+
+	scale_fill_manual(values = rev(brewer.pal(8,"YlOrBr")))+
+	facet_wrap(~Site)+
+	theme_bw(base_size = 18)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), strip.background = element_rect(colour="black", fill="white"))+
+	theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+	scale_x_discrete(breaks = c("2007", "2009", "2011", "2013", "2015", "2017"), expand = c(0,0))+
+	geom_line(data = subset(mean_algae_br_sub, mean_algae_br_sub$Taxa == "Coral"), aes(x = Year, y = Mean_cover_hard), size = 2, linetype = 1, color = "black")
+
+
+
+
+#####Create data frame to relate the change in macroalgae with the nutrient environment
+
+macro_sum<-subset(mean_algae_br, mean_algae_br$Taxa == "Macroalgae_sum")
+
+macro_2007<-subset(macro_sum, macro_sum$Year == "2007")
+
+macro_2013<-subset(macro_sum, macro_sum$Year == "2013")
+
+macro_delta<-(macro_2013$Mean_cover_hard - macro_2007$Mean_cover_hard)
+
+delta<-cbind(as.data.frame(macro_2007[,2]), macro_delta)
+
+colnames(delta)<-c("Site", "Delta_macroalgae")
+
+
+##Now combine with percent N marginal means
+
+delta_cor_macro<-cbind(delta, Percent_N[,2])
+
+colnames(delta_cor_macro)<-c("Site", "Delta_macroalgae", "Percent_N")
+
+#Test for a correlation between the change in macroalgae and mean N content in Turbinaria
+
+cor.test(delta_cor_macro$Delta_macroalgae, delta_cor_macro$Percent_N, method = "spearman")
+
+ggplot(delta_cor_macro, aes(Percent_N, Delta_macroalgae))+
+	geom_point(aes(color = Site), size = 5)+
+	theme_linedraw(base_size = 12)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+	ylab("Increase in macroalgae (% cover)")+
+	xlab("Mean nitrogen (%)")
+
+
+ggplot(delta_cor_macro, aes(Percent_N, Delta_macroalgae))+
+	geom_point(size = 5, shape = 1, stroke = 1)+
+	theme_linedraw(base_size = 12)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+	ylab("Increase in macroalgae (% cover)")+
+	xlab("Mean nitrogen (%)")
+
+
+#Now look at the same correlation but for change in coral cover
+
+coral_sum<-subset(mean_algae_br, mean_algae_br$Taxa == "Coral")
+
+coral_2007<-subset(coral_sum, coral_sum$Year == "2007")
+
+coral_2013<-subset(coral_sum, coral_sum$Year == "2013")
+
+coral_delta<-(coral_2013$Mean_cover_hard - coral_2007$Mean_cover_hard)
+
+delta_coral<-cbind(as.data.frame(coral_2007[,2]), coral_delta)
+
+colnames(delta_coral)<-c("Site", "Delta_coral")
+
+delta_cor<-cbind(delta_coral,  Percent_N[,2])
+
+colnames(delta_cor)<-c("Site", "Delta_coral", "Percent_N")
+
+cor.test(delta_cor$Delta_coral, delta_cor$Percent_N, method = "spearman")
+
+ggplot(delta_cor, aes(Percent_N, Delta_coral))+
+	geom_point(aes(color = Site), size = 5)+
+	theme_linedraw(base_size = 12)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+	ylab("Change in coral (% cover)")+
+	xlab("Mean nitrogen (%)")
+
+
+ggplot(delta_cor, aes(Percent_N, Delta_coral))+
+	geom_point(size = 5, shape = 1, stroke = 1)+
+	theme_linedraw(base_size = 12)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+	ylab("Change in coral (% cover)")+
+	xlab("Mean nitrogen (%)")
+
+#-------------------------------------------Herbivore data-----------------------------------
+
+###Now summarize herbivore data to test whether there is an assocation between increases in macroalgae and herbivore biomass
+
+#Remove transect 3 which has been surveyed by multiple different observers 
+
+Fish_Long<-subset(Fish_Long, Fish_Long$Transect != 3)
+
+#Look at just the 5 m swath (where roving herbivorous fishes are counted) and keep only the columns we need
+
+Fish_Long<-subset(Fish_Long, Fish_Long$Swath == 5)
+
+
+#Go from long to wide format
+
+Fish_Long<-Fish_Long[,c(1,5:8,10,15)]
+
+Fish_sum<-aggregate(Fish_Long$Biomass, by = list(Fish_Long$Year, Fish_Long$Site, Fish_Long$Habitat, Fish_Long$Transect, Fish_Long$Taxonomy), sum)
+
+colnames(Fish_sum)<-c("Year", "Site", "Habitat", "Transect", "Taxonomy", "Biomass")
+
+Fish_wide<-spread(Fish_sum, Taxonomy, Biomass, fill = 0)
+
+
+#Trim data frame to include ID variables and "roving herbivores" only.  DO NOT INCLUDE "Acanthurus triostegus" which sometimes occurs in very large schools and can strongly skew biomass estimates
+
+ 		Roving_Herbivores = Fish_wide[ , c("Year", "Site", "Habitat", "Transect",
+		"Acanthurus achilles", "Acanthurus blochii", "Acanthurus guttatus", "Acanthurus lineatus", "Acanthurus nigricans", "Acanthurus nigricauda",
+		"Acanthurus nigrofuscus", "Acanthurus nigros", "Acanthurus olivaceus", "Acanthurus pyroferus", "Calotomus carolinus",
+		"Cantherhines sandwichiensis", "Cetoscarus ocellatus", "Chlorurus frontalis", "Chlorurus microrhinos", "Chlorurus sordidus",
+		"Ctenochaetus binotatus", "Ctenochaetus flavicauda", "Ctenochaetus striatus", "Hipposcarus longiceps", "Kyphosus sp.", "Melichthys niger",
+		"Melichthys vidua", "Naso lituratus", "Naso unicornis", "Naso vlamingii", "Ostracion cubicus", "Scaridae unidentified 1",
+		"Scaridae unidentified 2", "Scaridae unidentified 3", "Scaridae unidentified 4", "Scaridae unidentified 5", "Scaridae unidentified 6",
+		"Scaridae unidentified 7", "Scarus altipinnis", "Scarus forsteni", "Scarus frenatus", "Scarus ghobban","Scarus globiceps", "Scarus niger", 
+		"Scarus oviceps", "Scarus psittacus", "Scarus rubroviolaceus", "Scarus schlegeli", "Scarus tricolor","Siganus argenteus", "Siganus spinus", 
+		"Zebrasoma flavescens", "Zebrasoma scopas", "Zebrasoma veliferum")] 
+
+#Add up columns and append with Transect IDs
+
+Roving_Herbivores_Sum = rowSums(Roving_Herbivores[,5:54])
+		
+Roving_Herbivores = cbind(Roving_Herbivores_Sum, Roving_Herbivores)
+
+#Calculate mean herbivore biomass for each Year, Site, Habitat combination and name columns
+
+Mean_Roving_Herbivores = aggregate(Roving_Herbivores$Roving_Herbivores_Sum, list(Roving_Herbivores$Site, Roving_Herbivores$Year, Roving_Herbivores$Habitat), mean)
+
+colnames(Mean_Roving_Herbivores) = c("Site", "Year", "Habitat", "Mean_Herbivore_Biomass")
+
+##Subset backreef data
+
+br_herb<-subset(Mean_Roving_Herbivores, Mean_Roving_Herbivores$Habitat == "Backreef")
+
+#Express biomass in terms of g/m2
+
+herb_biomass_g_m2<-br_herb$Mean_Herbivore_Biomass/250
+
+br_herb<-cbind(br_herb, herb_biomass_g_m2)
+
+
+##Merge herbivore data with algae data for plotting
+
+br_herb$Year<-as.factor(br_herb$Year)
+
+all<-merge(mean_algae_br_sub, br_herb, by = c("Site", "Year", "Habitat"), all.x = T, all.y = F)
+
+
+#plot data
+
+#Set up for a second y-axis
+
+ylim.prim<-c(0,100)
+ylim.sec<-c(0,65)
+
+
+b<-diff(ylim.prim)/diff(ylim.sec)
+a<-b*(ylim.prim[1] - ylim.sec[1])
+
+
+all<-subset(all, all$Year != "2006")
+
+
+ggplot(all, aes(Year, Mean_cover_hard, color = Taxa,group= Taxa))+
+	geom_area(aes(fill=Taxa, color = NULL), stat = "identity")+
+	scale_fill_manual(values = rev(brewer.pal(8,"YlOrBr")))+
+	geom_line(data = subset(all, all$Taxa == "Coral"), aes(x = Year, y =  Mean_cover_hard), size = 1, color = "black")+
+	#geom_point(data = subset(all, all$Taxa == "Coral"), aes(x = Year, y = Mean_cover_hard), size = 2.5, color = "gray")+
+	facet_wrap(~Site)+
+	geom_line(data = subset(all, all$Taxa == "Coral"),aes(x = Year, y = a + herb_biomass_g_m2*b), size = 0.7, linetype = 2, color = "gray")+
+	geom_point(data = subset(all, all$Taxa == "Coral"),aes(x = Year, y = a + herb_biomass_g_m2*b), size = 2.5, color = "gray")+
+	theme_linedraw(base_size = 14)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+	theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+	scale_x_discrete(breaks = c("2007", "2009", "2011", "2013", "2015", "2017"), expand = c(0,0))+
+	scale_y_continuous("Benthic cover (%)", sec.axis = sec_axis(~(.-a)/b, name = expression(paste("Herbivore biomass ", "(g ", m^-2, ")"))), expand = c(0,0))+
+	xlab("Year")+
+	theme(panel.spacing.x=unit(0.5, "lines"),panel.spacing.y=unit(3, "lines"))+ 
+	theme(strip.background=element_rect(fill="white"))+
+ 	theme(strip.text = element_text(colour = 'black'))
+
+#ggsave("algal_dynamics.pdf")
+
+####Get mean biomass of herbivorous fishes for the period of time when the macroalgal phase shifts occurred.
+
+all_sub<-subset(all, all$Year == "2007" | all$Year == "2008" | all$Year == "2009" | all$Year == "2010" | all$Year == "2011" | all$Year == "2012" | all$Year == "2013")
+
+mean_herb<-aggregate(all_sub$herb_biomass_g_m2, by = list(all_sub$Site), mean)
+
+#Combine herbivore data with dataframe that has the mean change in macroalgae during the study period
+
+delta_cor<-cbind(delta_cor_macro, mean_herb[,2])
+
+colnames(delta_cor)<-c("Site", "Delta_macroalgae", "Percent_N", "mean_herb")
+
+#Test for a correlation between the change in macroalgae and mean herbivore biomass
+
+cor.test(delta_cor$Delta_macroalgae, delta_cor$mean_herb, method = "spearman")
+
+ggplot(delta_cor, aes(mean_herb, Delta_macroalgae))+
+	geom_point(aes(color = Site), size = 5)+
+	theme_linedraw(base_size = 12)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+	xlab(expression(paste("Mean herbivore biomass ", "(g ", m^-2, ")")))+
+	ylab("Increase in macroalgae (% cover)")
+
+
+ggplot(delta_cor, aes(mean_herb, Delta_macroalgae))+
+	geom_point(size = 5, shape = 1, stroke = 1)+
+	theme_linedraw(base_size = 12)+
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+	xlab(expression(paste("Mean herbivore biomass ", "(g ", m^-2, ")")))+
+	ylab("Increase in macroalgae (% cover)")+
+	scale_x_continuous(breaks = c(8,10,12,14,16))
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

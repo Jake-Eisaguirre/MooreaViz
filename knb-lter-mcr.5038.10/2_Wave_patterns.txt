@@ -1,0 +1,305 @@
+#-----------------------------------------------------------------------------------------------------------------------------
+#Landscape-scape scale patterns of nutrient enrichment in a coral reef ecosystem: implications for coral to algae phase shifts
+#Adam et al.
+#2-Wave patterns
+#--------------------------------------------------------------------------------------------------------------------------------
+
+#This script calculates and plots estimates of wave power from measurements of wave height and wave period from bottom-mounted ADCPs and SBE26s at three study sites on the fore reef of Moorea (one site on each of the island's three shores).
+
+#Initialization
+library(ggplot2)
+library(lubridate)
+
+
+#Data----------------------------------------------------------------------------
+#Data from Moorea Coral Reef LTER core time series bottom-mounted ADCPs and SBE26s
+#http://mcrlter.msi.ucsb.edu/cgi-bin/showDataset.cgi?docid=knb-lter-mcr.30
+#http://mcrlter.msi.ucsb.edu/cgi-bin/showDataset.cgi?docid=knb-lter-mcr.31
+#http://mcrlter.msi.ucsb.edu/cgi-bin/showDataset.cgi?docid=knb-lter-mcr.32
+#Washburn, L of Moorea Coral Reef LTER. 2019. MCR LTER: Coral Reef: Ocean Currents and Biogeochemistry: salinity, temperature and current at CTD and ADCP mooring FOR01 from 2004 ongoing. knb-lter-mcr.30.35
+#Washburn, L of Moorea Coral Reef LTER. 2019. MCR LTER: Coral Reef: Ocean Currents and Biogeochemistry: salinity, temperature and current at CTD and ADCP mooring FOR04 from 2004 ongoing. knb-lter-mcr.31.39
+#Washburn, L of Moorea Coral Reef LTER. 2019. MCR LTER: Coral Reef: Ocean Currents and Biogeochemistry: salinity, temperature and current at CTD and ADCP mooring FOR05 from 2005 ongoing. knb-lter-mcr.32.35
+#Data accessed April 11, 2018
+
+nshore_waves<-read.csv("MCR_LTER_FOR01_PhysoData_Daily_average.csv", header = T)
+seshore_waves<-read.csv("MCR_LTER_FOR04_PhysoData_Daily_average.csv", header = T)
+swshore_waves<-read.csv("MCR_LTER_FOR05_PhysoData_Daily_average.csv", header = T)
+
+#check data structure and variable types
+
+str(nshore_waves)
+str(seshore_waves)
+str(swshore_waves)
+
+#Create variable to identify the shore
+
+shore<-rep("nshore", 4774)
+nshore_waves<-cbind(nshore_waves, shore)
+
+shore<-rep("seshore", 4562)
+seshore_waves<-cbind(seshore_waves, shore)
+
+shore<-rep("swshore", 4561)
+swshore_waves<-cbind(swshore_waves, shore)
+
+#Combine files
+
+waves_all<-rbind(nshore_waves, seshore_waves, swshore_waves)
+
+waves_all[waves_all == -999]<-NA
+
+
+#-----------------------------------------------------Calculate wave power
+
+wave_power_calc_adcp<-1025*9.81^2*(waves_all$wave_ht_adcp_m^2)*waves_all$wave_period_adcp_sec/(32*pi)
+
+wave_power_calc_26<-1025*9.81^2*(waves_all$wave_ht_sbe26_m^2)*waves_all$wave_period_sbe26_sec/(32*pi)
+
+waves_all<-cbind(waves_all, wave_power_calc_adcp)
+
+waves_all<-cbind(waves_all, wave_power_calc_26)
+
+#Look at relationship between wave power measured by the two different instruments
+
+ggplot(waves_all, aes(wave_power_calc_26, wave_power_calc_adcp))+geom_point(shape = 1) + scale_x_log10() + scale_y_log10() + facet_wrap(~shore)
+
+#Get the site specific relationships between the two instruments for gap filling
+
+seshore_waves<-subset(waves_all, waves_all$shore == "seshore")
+
+wavepower_model_seshore<-lm(log(seshore_waves$wave_power_calc_adcp) ~ log(seshore_waves$wave_power_calc_26))
+
+summary(wavepower_model_seshore)
+
+#intercept = 1.5
+#log(seashore_waves$wave_power_sbe26) = 0.88
+#r2 = 0.86
+
+swshore_waves<-subset(waves_all, waves_all$shore == "swshore")
+
+wavepower_model_swshore<-lm(log(swshore_waves$wave_power_calc_adcp) ~ log(swshore_waves$wave_power_calc_26))
+
+summary(wavepower_model_swshore)
+
+#intercept = 0.93
+#log(seashore_waves$wave_power_sbe26) = 0.90
+#r2 = 0.90
+
+nshore_waves<-subset(waves_all, waves_all$shore == "nshore")
+
+wavepower_model_nshore<-lm(log(nshore_waves$wave_power_calc_adcp) ~ log(nshore_waves$wave_power_calc_26))
+
+summary(wavepower_model_nshore)
+
+#intercept = 1.5
+#log(seashore_waves$wave_power_sbe26) = 0.88
+#r2 = 0.88
+
+
+#-------------------------subset just the dates that correspond with the study period
+waves_all$time_local<-as.character(waves_all$time_local)
+waves_all$time_local<-parse_date_time(waves_all$time_local, orders = "ymd HMS")
+waves_all$time_local<-as.Date(waves_all$time_local)
+waves_sub<-waves_all[waves_all$time_local >= "2015-10-01" & waves_all$time_local <= "2016-09-01",]
+
+
+ggplot(waves_sub, aes(time_local, wave_power_calc_adcp/1000))+
+	geom_path(aes(time_local, wave_power_calc_adcp/1000),color="blue", size = 0.75)+
+	theme_linedraw(base_size = 11)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+
+	labs(y = expression(paste("Wave power ", "(kW ", m^-1, ")")))+ 
+	labs(x = "Date")+
+	theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+	facet_wrap(~ shore, nrow = 3, scales = "free_y")+
+	theme(panel.spacing=unit(1.2, "lines"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+
+#--------------------------------gap fill missing adcp data on the east and west shores
+
+#sw shore
+
+projected_wave_power_adcp_sw<-as.data.frame(exp(log(swshore_waves$wave_power_calc_26)*0.9+0.93))
+projected_wave_power_adcp_sw<-cbind(swshore_waves[,c(1,49)], projected_wave_power_adcp_sw)
+colnames(projected_wave_power_adcp_sw)<-c("time_local", "shore", "Projected_waver_power_adcp")
+projected_wave_power_adcp_sw$time_local<-as.character(projected_wave_power_adcp_sw$time_local)
+projected_wave_power_adcp_sw$time_local<-parse_date_time(projected_wave_power_adcp_sw$time_local, orders = "ymd HMS")
+projected_wave_power_adcp_sw$time_local<-as.Date(projected_wave_power_adcp_sw$time_local)
+
+
+#se shore
+projected_wave_power_adcp_se<-as.data.frame(exp(log(seshore_waves$wave_power_calc_26)*0.88+1.5))
+projected_wave_power_adcp_se<-cbind(seshore_waves[,c(1,49)], projected_wave_power_adcp_se)
+colnames(projected_wave_power_adcp_se)<-c("time_local", "shore", "Projected_waver_power_adcp")
+projected_wave_power_adcp_se$time_local<-as.character(projected_wave_power_adcp_se$time_local)
+projected_wave_power_adcp_se$time_local<-parse_date_time(projected_wave_power_adcp_se$time_local, orders = "ymd HMS")
+projected_wave_power_adcp_se$time_local<-as.Date(projected_wave_power_adcp_se$time_local)
+
+
+#Combine data frames and merge with wave data 
+
+projected_wave_power_adcp<-rbind(projected_wave_power_adcp_sw, projected_wave_power_adcp_se)
+
+waves_sub<-merge(waves_sub, projected_wave_power_adcp, by = c("time_local", "shore"), all.x = T, all.y = F)
+
+#Plot wave power with calculated values
+
+ggplot(waves_sub, aes(time_local, wave_power_calc_adcp/1000))+
+	geom_path(aes(time_local, wave_power_calc_adcp/1000),color="blue", size = 0.75)+
+	geom_path(aes(time_local, Projected_waver_power_adcp/1000),color="red", size = 0.75)+
+	theme_linedraw(base_size = 11)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+
+	labs(y = expression(paste("Wave power ", "(kW ", m^-1, ")")))+ 
+	labs(x = "Date")+
+	theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+	facet_wrap(~ shore, nrow = 3, scales = "free_y")+
+	theme(panel.spacing=unit(1.2, "lines"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+#Now just retain gap filled values when data are missing
+
+gap_fill<-subset(waves_sub, is.na(waves_sub$wave_power_calc_adcp))
+
+colnames(gap_fill)[52]<-"Gap_fill"
+
+waves_sub<-merge(waves_sub, gap_fill[,c(1,2,52)], by = c("time_local", "shore"), all.x = T, all.y = T)
+
+ggplot(waves_sub, aes(time_local, wave_power_calc_adcp/1000))+
+	geom_path(aes(time_local, wave_power_calc_adcp/1000),color="blue", size = 0.75)+
+	geom_path(aes(time_local, Gap_fill/1000),color="red", size = 0.75)+
+	theme_linedraw(base_size = 11)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+
+	labs(y = expression(paste("Wave power ", "(kW ", m^-1, ")")))+ 
+	labs(x = "Date")+
+	theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+	facet_wrap(~ shore, nrow = 3, scales = "free_y")+
+	theme(panel.spacing=unit(1.2, "lines"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+
+#Gap fill the adcp data
+
+waves_sub$wave_power_calc_adcp[is.na(waves_sub$wave_power_calc_adcp)]<-waves_sub$Gap_fill[is.na(waves_sub$wave_power_calc_adcp)]
+
+
+ggplot(waves_sub, aes(time_local, wave_power_calc_adcp/1000))+
+	geom_path(aes(time_local, wave_power_calc_adcp/1000),color="blue", size = 0.75)+
+	theme_linedraw(base_size = 11)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+
+	labs(y = expression(paste("Wave power ", "(kW ", m^-1, ")")))+ 
+	labs(x = "Date")+
+	theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+	facet_wrap(~ shore, nrow = 3, scales = "free_y")+
+	theme(panel.spacing=unit(1.2, "lines"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+
+#--------------------------------------Calculate means for the ninety days preceding each sampling period
+
+#Sampling was conducted over ~ 3 weeks during each of the three sampling periods (January: January 8 to January 28, May: May 8 to May 14, August: July 26 to September 1).  
+
+#Calculate the mean wave power over the 3 month period preceding the midpoint of the sampling interval for each sample period
+
+
+Jan_3month<-waves_sub[waves_sub$time_local >= "2015-10-21" & waves_sub$time_local <= "2016-01-18",]
+
+May_3month<-waves_sub[waves_sub$time_local >= "2016-02-12" & waves_sub$time_local <= "2016-05-11",]
+
+July_3month<-waves_sub[waves_sub$time_local >= "2016-05-16" & waves_sub$time_local <= "2016-08-13",]
+
+
+Mean_Jan3month<-aggregate(Jan_3month$wave_power_calc_adcp, by = list(Jan_3month$shore), mean)
+
+colnames(Mean_Jan3month)<-c("shore", "Mean_wave_power_3month")
+
+Jan_3month<-merge(Jan_3month, Mean_Jan3month, by = "shore")
+
+
+Mean_May3month<-aggregate(May_3month$wave_power_calc_adcp, by = list(May_3month$shore), mean)
+
+colnames(Mean_May3month)<-c("shore", "Mean_wave_power_3month")
+
+May_3month<-merge(May_3month, Mean_May3month, by = "shore") 
+ 
+
+Mean_July3month<-aggregate(July_3month$wave_power_calc_adcp, by = list(July_3month$shore), mean)
+
+colnames(Mean_July3month)<-c("shore", "Mean_wave_power_3month")
+
+July_3month<-merge(July_3month, Mean_July3month, by = "shore") 
+
+
+three_month_means<-rbind(Jan_3month[,c(1,2,54)], May_3month[,c(1,2,54)], July_3month[,c(1,2,54)])
+waves_sub<-merge(waves_sub, three_month_means, by = c("shore", "time_local"), all.x = T)
+
+
+ggplot(waves_sub, aes(time_local, wave_power_calc_adcp/1000))+
+	geom_path(aes(time_local, wave_power_calc_adcp/1000),color="blue", size = 0.75)+
+	theme_linedraw(base_size = 11)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+
+	labs(y = expression(paste("Wave power ", "(kW ", m^-1, ")")))+ 
+	labs(x = "Date")+
+	theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+	geom_path(aes(time_local, Mean_wave_power_3month/1000), size = 1.5, linetype = 1)+
+	facet_wrap(~ shore, nrow = 3, scales = "free_y")+
+	theme(panel.spacing=unit(1.2, "lines"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+#--------------------------------------Calculate means for the 45 days preceding each sampling period
+
+
+Jan_6week<-waves_sub[waves_sub$time_local >= "2015-12-05" & waves_sub$time_local <= "2016-01-18",]
+
+May_6week<-waves_sub[waves_sub$time_local >= "2016-03-28" & waves_sub$time_local <= "2016-05-11",]
+
+July_6week<-waves_sub[waves_sub$time_local >= "2016-06-30" & waves_sub$time_local <= "2016-08-13",]
+
+
+Mean_Jan6week<-aggregate(Jan_6week$wave_power_calc_adcp, by = list(Jan_6week$shore), mean)
+
+colnames(Mean_Jan6week)<-c("shore", "Mean_wave_power_6week")
+
+Jan_6week<-merge(Jan_6week, Mean_Jan6week, by = "shore")
+
+
+Mean_May6week<-aggregate(May_6week$wave_power_calc_adcp, by = list(May_6week$shore), mean)
+
+colnames(Mean_May6week)<-c("shore", "Mean_wave_power_6week")
+
+May_6week<-merge(May_6week, Mean_May6week, by = "shore") 
+ 
+
+Mean_July6week<-aggregate(July_6week$wave_power_calc_adcp, by = list(July_6week$shore), mean)
+
+colnames(Mean_July6week)<-c("shore", "Mean_wave_power_6week")
+
+July_6week<-merge(July_6week, Mean_July6week, by = "shore") 
+
+
+six_week_means<-rbind(Jan_6week[,c(1,2,55)], May_6week[,c(1,2,55)], July_6week[,c(1,2,55)])
+
+
+waves_sub<-merge(waves_sub, six_week_means, by = c("shore", "time_local"), all.x = T)
+
+
+ggplot(waves_sub, aes(time_local, wave_power_calc_adcp/1000))+
+	geom_path(aes(time_local, wave_power_calc_adcp/1000),color="blue", size = 0.75)+
+	theme_linedraw(base_size = 11)+
+	scale_x_date(date_breaks = "1 month")+ 
+	theme(axis.text.x = element_text(angle=90))+
+	labs(y = expression(paste("Wave power ", "(kW ", m^-1, ")")))+ 
+	labs(x = "Date")+
+	theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+	geom_path(aes(time_local, Mean_wave_power_6week/1000), size = 1.5, linetype = 1)+
+	facet_wrap(~ shore, nrow = 3, scales = "free_y")+
+	theme(panel.spacing=unit(1.2, "lines"))+
+	theme(strip.background = element_blank(),strip.text.x = element_blank())
+
+
+
+
