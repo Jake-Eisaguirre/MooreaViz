@@ -1,0 +1,100 @@
+---
+title: "mooreaviz"
+author: "Jake Eisaguirre"
+date: "1/18/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+library(janitor)
+library(raster)
+library(viridis)
+library(sf)
+library(gstat)
+library(terra)
+```
+
+```{r}
+n_data <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_N_summary_20200331.csv")) %>% 
+  na.omit() %>% 
+  clean_names()
+
+nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_boundary_20200331.csv")) 
+
+bound <- nut_bound %>% 
+  st_as_sf(coords = c("X", "Y"), crs = crs) %>% 
+  summarise((geometry = st_combine(geometry))) %>% 
+  st_cast("POLYGON")
+
+  
+plot(bound)
+  
+```
+
+```{r}
+#moorea crs EPSG:2976 Need to check with Tom what they want
+crs <- 2976
+jan_n_data <- n_data %>% 
+  select(longitude, latitude, percent_n_jan)
+
+
+
+ggplot() +
+  geom_point(data = jan_n_data, mapping = aes(x = longitude, y = latitude, color = percent_n_jan),
+             size = 3) + 
+  scale_color_viridis(option = "B") +
+  theme_classic()
+
+
+```
+# Attempt at kriggin. Close but I think the nut_bound is not working properly.
+```{r}
+sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 2976) %>% 
+  cbind(st_coordinates(.))
+
+jan_n_vario <- gstat::variogram(
+  percent_n_jan~1,
+  as(sf_jan_n_data, "Spatial"))
+
+plot(jan_n_vario)
+
+v_mod_full <- automap::autofitVariogram(percent_n_jan~1, as(sf_jan_n_data, "Spatial"))
+
+v_mod <- v_mod_full$var_model
+
+
+plot(v_mod_full)
+
+grd_100_sf <- bound %>% 
+  st_bbox() %>% # gets the bbox of our observations
+  st_as_sfc() %>% # make the bbox an sfc object
+  st_make_grid( # make the grid
+  cellsize = c(100, 100), # 100m pixel size
+  what = "centers"
+  ) %>%
+  st_as_sf() %>% # get back to sf object from sfc
+  cbind(., st_coordinates(.)) # ensure you keep tracking your X-Y coordinates
+
+# Make sure you can interpret these figures -- why do these two figures together show an empty X-Y grid? 
+plot(grd_100_sf)
+
+grd_100_sp <- as(grd_100_sf, "Spatial") # converting to {sp} format
+gridded(grd_100_sp) <- TRUE             # informing the object that it is a grid
+grd_100_sp <- as(grd_100_sp, "SpatialPixels") # specifying what kind of grid
+
+
+OK <- krige(
+  percent_n_jan~1,                       # Z is our variable and "~1" means "depends on mean"
+  as(sf_jan_n_data, "Spatial"), # input data in {sp} format
+  grd_100_sp,                # locations to interpolate at
+  model = v_mod           # the variogram model fitted above
+  )
+
+dim(OK)
+plot(grd_100_sp)
+plot_my_gstat_output(raster(OK), "Ordinary Kriging") # a simple `plot(raster(OK))` also works just fine
+```
+
