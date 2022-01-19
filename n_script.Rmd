@@ -15,6 +15,7 @@ library(viridis)
 library(sf)
 library(gstat)
 library(terra)
+library(pracma)
 ```
 
 ```{r}
@@ -22,15 +23,10 @@ n_data <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_N_summary_
   na.omit() %>% 
   clean_names()
 
-nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_boundary_20200331.csv")) 
+nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_boundary_20200331.csv")) %>% 
+  as.data.frame()
 
-bound <- nut_bound %>% 
-  st_as_sf(coords = c("X", "Y"), crs = crs) %>% 
-  summarise((geometry = st_combine(geometry))) %>% 
-  st_cast("POLYGON")
 
-  
-plot(bound)
   
 ```
 
@@ -38,7 +34,7 @@ plot(bound)
 #moorea crs EPSG:2976 Need to check with Tom what they want
 crs <- 2976
 jan_n_data <- n_data %>% 
-  select(longitude, latitude, percent_n_jan)
+  dplyr::select(longitude, latitude, percent_n_jan)
 
 
 
@@ -49,10 +45,38 @@ ggplot() +
   theme_classic()
 
 
+
+bound <- nut_bound %>% 
+  st_as_sf(coords = c("X", "Y"), crs = crs) %>%
+  summarise(geometry = st_combine(geometry)) %>% 
+  st_cast("POLYGON") %>% 
+  mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84"))
+
+shp_bound <- st_write(bound, here("shape_files", "bound.shp"), delete_dsn=TRUE)
+bound <- read_sf(here("shape_files", "bound.shp")) %>% 
+   mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84")) %>% 
+  st_set_crs(crs)
+
+  
+ggplot()+
+  geom_sf(data = bound, col = "black", fill = NA) +
+  theme_classic() +
+  geom_point(data = jan_n_data, mapping = aes(x = longitude, y = latitude, color = percent_n_jan),
+             size = 3) + 
+  scale_color_viridis(option = "B") +
+  coord_sf(crs = crs)
+
+
+
+borderpolygon <- list(data.frame(nut_bound[,1], nut_bound[,2]))
+
+krig1 <- kriging(jan_n_data$longitude, jan_n_data$latitude, jan_n_data$percent_n_jan, pixels=1000, polygons=borderpolygon)
+
+
 ```
 # Attempt at kriggin. Close but I think the nut_bound is not working properly.
 ```{r}
-sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 2976) %>% 
+sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = crs) %>% 
   cbind(st_coordinates(.))
 
 jan_n_vario <- gstat::variogram(
@@ -65,7 +89,7 @@ v_mod_full <- automap::autofitVariogram(percent_n_jan~1, as(sf_jan_n_data, "Spat
 
 v_mod <- v_mod_full$var_model
 
-
+st_bbox(bound)
 plot(v_mod_full)
 
 grd_100_sf <- bound %>% 
@@ -73,7 +97,7 @@ grd_100_sf <- bound %>%
   st_as_sfc() %>% # make the bbox an sfc object
   st_make_grid( # make the grid
   cellsize = c(100, 100), # 100m pixel size
-  what = "centers"
+  what = "polygons"
   ) %>%
   st_as_sf() %>% # get back to sf object from sfc
   cbind(., st_coordinates(.)) # ensure you keep tracking your X-Y coordinates
