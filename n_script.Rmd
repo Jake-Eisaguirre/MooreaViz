@@ -33,6 +33,7 @@ nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_bou
 ```{r}
 #moorea crs EPSG:2976 Need to check with Tom what they want
 crs <- 2976
+
 jan_n_data <- n_data %>% 
   dplyr::select(longitude, latitude, percent_n_jan)
 
@@ -53,6 +54,7 @@ bound <- nut_bound %>%
   mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84"))
 
 shp_bound <- st_write(bound, here("shape_files", "bound.shp"), delete_dsn=TRUE)
+
 bound <- read_sf(here("shape_files", "bound.shp")) %>% 
    mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84")) %>% 
   st_set_crs(crs)
@@ -68,9 +70,12 @@ ggplot()+
 
 
 
+
 borderpolygon <- list(data.frame(nut_bound[,1], nut_bound[,2]))
 
-krig1 <- kriging(jan_n_data$longitude, jan_n_data$latitude, jan_n_data$percent_n_jan, pixels=1000, polygons=borderpolygon)
+j_data <- as.matrix(jan_n_data)
+
+krig1 <- kriging(jan_n_data$longitude, jan_n_data$latitude, jan_n_data$percent_n_jan)
 
 
 ```
@@ -102,7 +107,7 @@ grd_100_sf <- bound %>%
   st_as_sf() %>% # get back to sf object from sfc
   cbind(., st_coordinates(.)) # ensure you keep tracking your X-Y coordinates
 
-# Make sure you can interpret these figures -- why do these two figures together show an empty X-Y grid? 
+# Make sure you can interpret these figures -- why do these two figures #together show an empty X-Y grid? 
 plot(grd_100_sf)
 
 grd_100_sp <- as(grd_100_sf, "Spatial") # converting to {sp} format
