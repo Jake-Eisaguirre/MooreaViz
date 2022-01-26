@@ -16,6 +16,7 @@ library(sf)
 library(gstat)
 library(terra)
 library(pracma)
+library(sp)
 ```
 
 ```{r}
@@ -73,16 +74,18 @@ ggplot()+
 
 borderpolygon <- list(data.frame(nut_bound[,1], nut_bound[,2]))
 
-j_data <- as.matrix(jan_n_data)
+j_data <- data.matrix(jan_n_data)
 
-krig1 <- kriging(jan_n_data$longitude, jan_n_data$latitude, jan_n_data$percent_n_jan)
+krig1 <- kriging(j_data[,'longitude'], j_data[,'latitude'], j_data[,'percent_n_jan'], pixels = 1000, polygons = borderpolygon)
 
 
 ```
 # Attempt at kriggin. Close but I think the nut_bound is not working properly.
 ```{r}
 sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = crs) %>% 
-  cbind(st_coordinates(.))
+  cbind(st_coordinates(.)) %>% 
+  st_set_crs(4326) %>% 
+  st_transform(crs)
 
 jan_n_vario <- gstat::variogram(
   percent_n_jan~1,
@@ -97,22 +100,25 @@ v_mod <- v_mod_full$var_model
 st_bbox(bound)
 plot(v_mod_full)
 
-grd_100_sf <- bound %>% 
-  st_bbox() %>% # gets the bbox of our observations
-  st_as_sfc() %>% # make the bbox an sfc object
-  st_make_grid( # make the grid
-  cellsize = c(100, 100), # 100m pixel size
-  what = "polygons"
-  ) %>%
-  st_as_sf() %>% # get back to sf object from sfc
-  cbind(., st_coordinates(.)) # ensure you keep tracking your X-Y coordinates
+
 
 # Make sure you can interpret these figures -- why do these two figures #together show an empty X-Y grid? 
-plot(grd_100_sf)
+plot(grd_100_sp)
 
-grd_100_sp <- as(grd_100_sf, "Spatial") # converting to {sp} format
-gridded(grd_100_sp) <- TRUE             # informing the object that it is a grid
+
+
+grd_100_sp <- as(shp_bound, "Spatial") %>% 
+  st_as_sf() %>% 
+  st_set_crs(4326) %>% 
+  st_transform(crs)# converting to {sp} format
+
+grd <- st_make_grid(grd_100_sp) %>% 
+  st_set_crs(4326) %>% 
+  st_transform(crs)
+
+gridded(nut_bound) <- TRUE             # informing the object that it is a grid
 grd_100_sp <- as(grd_100_sp, "SpatialPixels") # specifying what kind of grid
+
 
 
 OK <- krige(
@@ -122,6 +128,7 @@ OK <- krige(
   model = v_mod           # the variogram model fitted above
   )
 
+plot(OK)
 dim(OK)
 plot(grd_100_sp)
 plot_my_gstat_output(raster(OK), "Ordinary Kriging") # a simple `plot(raster(OK))` also works just fine
