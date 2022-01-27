@@ -39,7 +39,7 @@ jan_n_data <- n_data %>%
   dplyr::select(longitude, latitude, percent_n_jan)
 
 
-
+#data plot
 ggplot() +
   geom_point(data = jan_n_data, mapping = aes(x = longitude, y = latitude, color = percent_n_jan),
              size = 3) + 
@@ -47,20 +47,23 @@ ggplot() +
   theme_classic()
 
 
-
-bound <- nut_bound %>% 
+#this boundary is normal lat long
+bound_explore <- nut_bound %>% 
   st_as_sf(coords = c("X", "Y"), crs = crs) %>%
   summarise(geometry = st_combine(geometry)) %>% 
   st_cast("POLYGON") %>% 
   mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84"))
 
-shp_bound <- st_write(bound, here("shape_files", "bound.shp"), delete_dsn=TRUE)
+#code to save shape file. once we determine best shape file, current one is wrong. might be better to get shape file of moorea
+#and use that for inner bound and then use current outter bound.
+shp_bound <- st_write(bound_explore, here("shape_files", "bound.shp"), delete_dsn=TRUE)
 
-bound <- read_sf(here("shape_files", "bound.shp")) %>% 
+bound_explore <- read_sf(here("shape_files", "bound.shp")) %>% 
    mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84")) %>% 
   st_set_crs(crs)
 
-  
+
+#reef bound and data point plot
 ggplot()+
   geom_sf(data = bound, col = "black", fill = NA) +
   theme_classic() +
@@ -71,7 +74,7 @@ ggplot()+
 
 
 
-
+#toms method of krigging that i could not get to work
 borderpolygon <- list(data.frame(nut_bound[,1], nut_bound[,2]))
 
 j_data <- data.matrix(jan_n_data)
@@ -82,11 +85,20 @@ krig1 <- kriging(j_data[,'longitude'], j_data[,'latitude'], j_data[,'percent_n_j
 ```
 # Attempt at kriggin. Close but I think the nut_bound is not working properly.
 ```{r}
-sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = crs) %>% 
+#converting jan data to sf and changing lat long to UTM/weird lat long
+sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
   cbind(st_coordinates(.)) %>% 
-  st_set_crs(4326) %>% 
-  st_transform(crs)
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+#reef bound in UTM/weird lat long
+bound <- nut_bound %>% 
+  st_as_sf(coords = c("X", "Y"), crs = 4326) %>% 
+  summarise(geometry = st_combine(geometry)) %>% 
+  st_cast("POLYGON") %>% 
+  st_set_crs(crs)
 
+#vario gram stuff
 jan_n_vario <- gstat::variogram(
   percent_n_jan~1,
   as(sf_jan_n_data, "Spatial"))
@@ -97,40 +109,45 @@ v_mod_full <- automap::autofitVariogram(percent_n_jan~1, as(sf_jan_n_data, "Spat
 
 v_mod <- v_mod_full$var_model
 
-st_bbox(bound)
+#this shape of the plot concerns me
 plot(v_mod_full)
 
 
 
-# Make sure you can interpret these figures -- why do these two figures #together show an empty X-Y grid? 
-plot(grd_100_sp)
+#making a gridded box with the bounds of the lat long in UTM/weird lat long
+grd_100_sf <- sf_jan_n_data %>% 
+  st_bbox() %>% # gets the bbox of our observations
+  st_as_sfc() %>% # make the bbox an sfc object
+  st_make_grid( # make the grid
+  cellsize = c(10, 10), # 100m pixel size
+  what = "centers"
+  ) %>%
+  st_as_sf() %>% # get back to sf object from sfc
+  cbind(., st_coordinates(.)) 
+
+plot(grd_100_sf)
+plot(bound)
+
+#Clipping the gridded box by the reef bound
+bound_grid <- st_intersection(grd_100_sf, bound)
+
+#Thank you Tamma, converting between formats
+grd_100_sp <- as(bound_grid, "Spatial") # converting to {sp} format
+gridded(grd_100_sp) <- TRUE             # informing the object that it is a grid
+grd_100_sp <- as(grd_100_sp, "SpatialPixels")
 
 
-
-grd_100_sp <- as(shp_bound, "Spatial") %>% 
-  st_as_sf() %>% 
-  st_set_crs(4326) %>% 
-  st_transform(crs)# converting to {sp} format
-
-grd <- st_make_grid(grd_100_sp) %>% 
-  st_set_crs(4326) %>% 
-  st_transform(crs)
-
-gridded(nut_bound) <- TRUE             # informing the object that it is a grid
-grd_100_sp <- as(grd_100_sp, "SpatialPixels") # specifying what kind of grid
-
+plot(bound_grid)
 
 
 OK <- krige(
   percent_n_jan~1,                       # Z is our variable and "~1" means "depends on mean"
   as(sf_jan_n_data, "Spatial"), # input data in {sp} format
   grd_100_sp,                # locations to interpolate at
-  model = v_mod           # the variogram model fitted above
+  model = v_mod # model fitted above !!! <---- Since the model is fitted by variogram and Tom did not do that, maybe we right
   )
 
 plot(OK)
-dim(OK)
-plot(grd_100_sp)
-plot_my_gstat_output(raster(OK), "Ordinary Kriging") # a simple `plot(raster(OK))` also works just fine
+ # a simple `plot(raster(OK))` also works just fine
 ```
 
