@@ -65,7 +65,7 @@ bound_explore <- read_sf(here("shape_files", "bound.shp")) %>%
 
 #reef bound and data point plot
 ggplot()+
-  geom_sf(data = bound, col = "black", fill = NA) +
+  geom_sf(data = bound_explore, col = "black", fill = NA) +
   theme_classic() +
   geom_point(data = jan_n_data, mapping = aes(x = longitude, y = latitude, color = percent_n_jan),
              size = 3) + 
@@ -98,6 +98,19 @@ bound <- nut_bound %>%
   st_cast("POLYGON") %>% 
   st_set_crs(crs)
 
+#Island Bound in UTM/weird lat long
+island_bound_shp <- read_sf(here("stanford-bh400kc3500-shapefile", "bh400kc3500.shp")) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs)) %>% 
+  dplyr::select(geometry)
+
+
+island_bound <- st_crop(island_bound_shp, bound)
+  
+
+
 #vario gram stuff
 jan_n_vario <- gstat::variogram(
   percent_n_jan~1,
@@ -125,11 +138,15 @@ grd_100_sf <- sf_jan_n_data %>%
   st_as_sf() %>% # get back to sf object from sfc
   cbind(., st_coordinates(.)) 
 
-plot(grd_100_sf)
-plot(bound)
+
 
 #Clipping the gridded box by the reef bound
 bound_grid <- st_intersection(grd_100_sf, bound)
+
+#Clipping the gridded reef box with the island
+bound_grid <- st_crop(island_bound, bound_grid)
+
+plot(bound_grid)
 
 #Thank you Tamma, converting between formats
 grd_100_sp <- as(bound_grid, "Spatial") # converting to {sp} format
@@ -137,7 +154,6 @@ gridded(grd_100_sp) <- TRUE             # informing the object that it is a grid
 grd_100_sp <- as(grd_100_sp, "SpatialPixels")
 
 
-plot(bound_grid)
 
 
 OK <- krige(
