@@ -109,7 +109,7 @@ island_bound_shp <- read_sf(here("stanford-bh400kc3500-shapefile", "bh400kc3500.
 
 island_bound <- st_crop(island_bound_shp, bound)
   
-
+plot(island_bound)
 
 #vario gram stuff
 jan_n_vario <- gstat::variogram(
@@ -132,7 +132,7 @@ grd_100_sf <- sf_jan_n_data %>%
   st_bbox() %>% # gets the bbox of our observations
   st_as_sfc() %>% # make the bbox an sfc object
   st_make_grid( # make the grid
-  cellsize = c(10, 10), # 100m pixel size
+  cellsize = c(100, 100), # 100m pixel size
   what = "centers"
   ) %>%
   st_as_sf() %>% # get back to sf object from sfc
