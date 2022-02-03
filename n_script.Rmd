@@ -17,11 +17,11 @@ library(gstat)
 library(terra)
 library(pracma)
 library(sp)
+library(leaflet)
 ```
 
 ```{r}
 n_data <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_N_summary_20200331.csv")) %>% 
-  na.omit() %>% 
   clean_names()
 
 nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_boundary_20200331.csv")) %>% 
@@ -30,13 +30,14 @@ nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_bou
 
   
 ```
-
+### This is all exploratory stuff and writing .shp for reef bound
 ```{r}
 #moorea crs EPSG:2976 Need to check with Tom what they want
 crs <- 2976
 
 jan_n_data <- n_data %>% 
-  dplyr::select(longitude, latitude, percent_n_jan)
+  dplyr::select(longitude, latitude, percent_n_jan) %>% 
+  na.omit()
 
 
 #data plot
@@ -74,16 +75,8 @@ ggplot()+
 
 
 
-#toms method of krigging that i could not get to work
-borderpolygon <- list(data.frame(nut_bound[,1], nut_bound[,2]))
-
-j_data <- data.matrix(jan_n_data)
-
-krig1 <- kriging(j_data[,'longitude'], j_data[,'latitude'], j_data[,'percent_n_jan'], pixels = 1000, polygons = borderpolygon)
-
-
 ```
-# Attempt at kriggin. Close but I think the nut_bound is not working properly.
+# Kriging jan_n data
 ```{r}
 #converting jan data to sf and changing lat long to UTM/weird lat long
 sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
@@ -96,10 +89,11 @@ bound <- nut_bound %>%
   st_as_sf(coords = c("X", "Y"), crs = 4326) %>% 
   summarise(geometry = st_combine(geometry)) %>% 
   st_cast("POLYGON") %>% 
-  st_set_crs(crs)
+  st_set_crs(crs) %>% 
+  st_buffer(200)
 
 #Island Bound in UTM/weird lat long
-island_bound_shp <- read_sf(here("stanford-bh400kc3500-shapefile", "bh400kc3500.shp")) %>% 
+island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>% 
   mutate(geometry = st_transform(geometry, 
                                  "+proj=utm +zone=6 +south +ellps=intl 
                                  +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
@@ -107,9 +101,10 @@ island_bound_shp <- read_sf(here("stanford-bh400kc3500-shapefile", "bh400kc3500.
   dplyr::select(geometry)
 
 
-island_bound <- st_crop(island_bound_shp, bound)
-  
-plot(island_bound)
+island_bound <- st_crop(island_bound_shp$geometry, bound$geometry)
+
+clipped_bound <- st_difference(bound$geometry,island_bound)
+
 
 #vario gram stuff
 jan_n_vario <- gstat::variogram(
@@ -132,7 +127,7 @@ grd_100_sf <- sf_jan_n_data %>%
   st_bbox() %>% # gets the bbox of our observations
   st_as_sfc() %>% # make the bbox an sfc object
   st_make_grid( # make the grid
-  cellsize = c(100, 100), # 100m pixel size
+  cellsize = c(50, 50), # 100m pixel size
   what = "centers"
   ) %>%
   st_as_sf() %>% # get back to sf object from sfc
@@ -141,10 +136,7 @@ grd_100_sf <- sf_jan_n_data %>%
 
 
 #Clipping the gridded box by the reef bound
-bound_grid <- st_intersection(grd_100_sf, bound)
-
-#Clipping the gridded reef box with the island
-bound_grid <- st_crop(island_bound, bound_grid)
+bound_grid <- st_intersection(grd_100_sf, clipped_bound)
 
 plot(bound_grid)
 
@@ -156,14 +148,23 @@ grd_100_sp <- as(grd_100_sp, "SpatialPixels")
 
 
 
-OK <- krige(
+jan_krig <- krige(
   percent_n_jan~1,                       # Z is our variable and "~1" means "depends on mean"
   as(sf_jan_n_data, "Spatial"), # input data in {sp} format
   grd_100_sp,                # locations to interpolate at
-  model = v_mod # model fitted above !!! <---- Since the model is fitted by variogram and Tom did not do that, maybe we right
+  model =  # model fitted above !!! <---- Since the model is fitted by variogram and Tom did not do that, maybe we right
   )
 
-plot(OK)
- # a simple `plot(raster(OK))` also works just fine
+plot(jan_krig)
+  
+
+
+```
+
+```{r}
+leaflet() %>% 
+  addProviderTiles("Esri.WorldImagery") %>% 
+  addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
+                   color = "black")
 ```
 
