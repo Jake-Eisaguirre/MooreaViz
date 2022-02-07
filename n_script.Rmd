@@ -77,15 +77,28 @@ ggplot()+
 
 
 ```
+# Tidy format data
+```{r}
+
+n_data <- n_data %>% 
+  pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
+  separate(type, into = c("method","random", "date"), sep = "_") %>% 
+  dplyr::select(-random)
+
+```
+
 # Prepping shapefiles and boundary
 ```{r}
+#moorea crs EPSG:2976 Need to check with Tom what they want
+crs <- 2976
+
 #reef bound in UTM
 bound <- nut_bound %>% 
   st_as_sf(coords = c("X", "Y"), crs = 4326) %>% 
   summarise(geometry = st_combine(geometry)) %>% 
   st_cast("POLYGON") %>% 
   st_set_crs(crs) %>% 
-  st_buffer(200)
+  st_buffer(550)
 
 #Island Bound in UTM
 island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>% 
@@ -107,22 +120,24 @@ plot(clipped_bound)
 ```{r}
 # selecting n-jan data
 jan_n_data <- n_data %>% 
-  dplyr::select(longitude, latitude, percent_n_jan) %>% 
+  filter(date == "jan", method == "percent") %>%
+  dplyr::select(longitude, latitude, percent_n) %>% 
   na.omit()
 
 #converting jan data to sf and changing lat long to UTM
 sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
   cbind(st_coordinates(.)) %>% 
   mutate(geometry = st_transform(geometry, 
-                                 "+proj=utm +zone=6 +south +ellps=intl +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
                                  crs = crs))
 
 #vario gram and model selection - confirm ~1 and more clarity on variogram results
-jan_n_vario <- variogram(percent_n_jan~1, as(sf_jan_n_data, "Spatial"))
+jan_n_vario <- variogram(percent_n~1, as(sf_jan_n_data, "Spatial"))
 
 plot(jan_n_vario)
 
-v_mod_full <- autofitVariogram(percent_n_jan~1, as(sf_jan_n_data, "Spatial"))
+v_mod_full <- autofitVariogram(percent_n~1, as(sf_jan_n_data, "Spatial"))
 
 v_mod <- v_mod_full$var_model
 
@@ -152,7 +167,7 @@ grd_sp <- as(grd_sp, "SpatialPixels")
 
 
 #krige - any reason to not use our fitted model?
-jan_krig <- krige(percent_n_jan~1, as(sf_jan_n_data, "Spatial"), 
+jan_krig <- krige(percent_n~1, as(sf_jan_n_data, "Spatial"), 
                   grd_sp, model = v_mod)
 
 plot(jan_krig)
