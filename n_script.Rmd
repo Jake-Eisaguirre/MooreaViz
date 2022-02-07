@@ -105,6 +105,10 @@ plot(clipped_bound)
 
 # Kriging january nitrogen data for Moorea lagoon/reef boundary
 ```{r}
+# selecting n-jan data
+jan_n_data <- n_data %>% 
+  dplyr::select(longitude, latitude, percent_n_jan) %>% 
+  na.omit()
 
 #converting jan data to sf and changing lat long to UTM
 sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
@@ -113,7 +117,7 @@ sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs =
                                  "+proj=utm +zone=6 +south +ellps=intl +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
                                  crs = crs))
 
-#vario gram and model selection
+#vario gram and model selection - confirm ~1 and more clarity on variogram results
 jan_n_vario <- variogram(percent_n_jan~1, as(sf_jan_n_data, "Spatial"))
 
 plot(jan_n_vario)
@@ -122,11 +126,11 @@ v_mod_full <- autofitVariogram(percent_n_jan~1, as(sf_jan_n_data, "Spatial"))
 
 v_mod <- v_mod_full$var_model
 
-#this shape of the plot concerns me
+#What does the plateau tell us about the data?
 plot(v_mod_full)
 
 
-#making a gridded box with the bounds of the lat long in UTM
+#making a gridded box with the bounds of the lat long in UTM - "centers" correct or should it be "polygons", "corners"?
 grd_sf <- sf_jan_n_data %>% 
   st_bbox() %>% 
   st_as_sfc() %>% 
@@ -147,7 +151,7 @@ gridded(grd_sp) <- TRUE
 grd_sp <- as(grd_sp, "SpatialPixels")
 
 
-#krige
+#krige - any reason to not use our fitted model?
 jan_krig <- krige(percent_n_jan~1, as(sf_jan_n_data, "Spatial"), 
                   grd_sp, model = v_mod)
 
