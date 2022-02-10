@@ -14,11 +14,11 @@ library(raster)
 library(viridis)
 library(sf)
 library(gstat)
-library(terra)
-library(pracma)
 library(sp)
 library(leaflet)
 library(automap)
+library(shiny)
+library(testthat)
 ```
 
 ```{r}
@@ -172,6 +172,7 @@ jan_krig <- krige(percent_n~1, as(sf_jan_n_data, "Spatial"),
 
 plot(jan_krig)
   
+jan_ras <- raster(jan_krig)
 
 
 ```
@@ -180,6 +181,7 @@ plot(jan_krig)
 leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
   addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
-                   color = "black")
+                   color = "black") %>% 
+  addRasterImage(jan_ras)
 ```
 
