@@ -19,6 +19,7 @@ library(leaflet)
 library(automap)
 library(shiny)
 library(testthat)
+library(htmlwidgets)
 ```
 
 ```{r}
@@ -178,10 +179,13 @@ jan_ras <- raster(jan_krig)
 ```
 
 ```{r}
-leaflet() %>% 
+base_leaf <- leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
   addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
                    color = "black") %>% 
   addRasterImage(jan_ras)
+
+saveWidget(base_leaf, file= "base_leaf.html", selfcontained = T)
+
 ```
 
