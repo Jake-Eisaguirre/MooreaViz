@@ -20,6 +20,7 @@ library(automap)
 library(shiny)
 library(testthat)
 library(htmlwidgets)
+
 ```
 
 ```{r}
@@ -150,7 +151,7 @@ plot(v_mod_full)
 grd_sf <- sf_jan_n_data %>% 
   st_bbox() %>% 
   st_as_sfc() %>% 
-  st_make_grid(cellsize = c(50, 50), what = "centers") %>%
+  st_make_grid(cellsize = c(20, 20), what = "centers") %>%
   st_as_sf() %>% 
   cbind(., st_coordinates(.)) 
 
@@ -171,19 +172,59 @@ grd_sp <- as(grd_sp, "SpatialPixels")
 jan_krig <- krige(percent_n~1, as(sf_jan_n_data, "Spatial"), 
                   grd_sp, model = v_mod)
 
-plot(jan_krig)
   
 jan_ras <- raster(jan_krig)
+
+sf_bound <- st_sf(clipped_bound)
+
+new_jan_ras <- raster(sf_bound, resolution(c(0.1,0.1)))
+
+re_samp_jan_n <- resample(jan_ras, new_jan_ras, method = "bilinear")
+
+
+
+clipped_ras <- mask(jan_ras, ras_bound)
+
+```
+
+# random ggplot for slides
+```{r}
+jan_data <- as.data.frame(rasterToPoints(jan_ras))
+
+ggplot(data = jan_data) + 
+  geom_raster(aes(x = x, y = y, fill = var1.pred)) +
+  scale_fill_viridis_c(option = "plasma", "Predicted N") +
+  theme_classic() +
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+          axis.text.y=element_blank(),axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        plot.background=element_blank()) +
+  ggtitle("January Turbinaria Ornata Nitrogen")
 
 
 ```
 
 ```{r}
-base_leaf <- leaflet() %>% 
+pal <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
+
+leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
   addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
-                   color = "black") %>% 
-  addRasterImage(jan_ras)
+                   color = "black", group = "Observations") %>% 
+  addRasterImage(jan_ras, colors = "plasma", group = "January N") %>% 
+   addLayersControl(
+    baseGroups = c("January N"),
+    overlayGroups = c("Observations"),
+    options = layersControlOptions(collapsed = FALSE))  %>% 
+  addLegend(data = jan_data, title = 'Percent N', pal = pal,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "January N")
+
 
 saveWidget(base_leaf, file= "base_leaf.html", selfcontained = T)
 
