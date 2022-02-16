@@ -100,7 +100,7 @@ bound <- nut_bound %>%
   summarise(geometry = st_combine(geometry)) %>% 
   st_cast("POLYGON") %>% 
   st_set_crs(crs) %>% 
-  st_buffer(600)
+  st_buffer(650)
 
 #Island Bound in UTM
 island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>% 
@@ -219,8 +219,6 @@ leaflet() %>%
             position = "bottomright", 
             values = ~var1.pred, opacity = 1, group = "January N")
 
-
-saveWidget(base_leaf, file= "base_leaf.html", selfcontained = T)
 
 ```
 
