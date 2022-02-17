@@ -181,6 +181,8 @@ sf_bound <- st_sf(clipped_bound)
   
 #mask raster to boundary 
 final_clipped_jan_ras <- mask(jan_ras, sf_bound)
+
+plot(final_clipped_jan_ras)
 ```
 
 
@@ -192,7 +194,7 @@ leaflet() %>%
   addProviderTiles("Esri.WorldImagery") %>% 
   addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
                    color = "black", group = "Observations") %>% 
-  addRasterImage(final_clipped_jan_ras, colors = "plasma", group = "January N", opacity = 1) %>% 
+  addRasterImage(final_clipped_jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
    addLayersControl(
     baseGroups = c("January N"),
     overlayGroups = c("Observations"),
