@@ -35,7 +35,7 @@ nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_bou
 ```
 ### This is all exploratory stuff and writing .shp for reef bound
 ```{r}
-#moorea crs EPSG:2976 Need to check with Tom what they want
+#moorea crs EPSG:2976???
 crs <- 2976
 
 jan_n_data <- n_data %>% 
@@ -79,7 +79,7 @@ ggplot()+
 
 
 ```
-# Tidy format data
+# Tidy format nitrogen data
 ```{r}
 
 n_data <- n_data %>% 
@@ -91,7 +91,7 @@ n_data <- n_data %>%
 
 # Prepping shapefiles and boundary
 ```{r}
-#moorea crs EPSG:2976 Need to check with Tom what they want
+#moorea crs EPSG:2976 
 crs <- 2976
 
 #reef bound in UTM
@@ -100,7 +100,7 @@ bound <- nut_bound %>%
   summarise(geometry = st_combine(geometry)) %>% 
   st_cast("POLYGON") %>% 
   st_set_crs(crs) %>% 
-  st_buffer(650)
+  st_buffer(750)
 
 #Island Bound in UTM
 island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>% 
@@ -111,11 +111,13 @@ island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>%
   dplyr::select(geometry)
 
 #clipping reef boundary 
-island_bound <- st_crop(island_bound_shp$geometry, bound$geometry)
+island_bound <- st_crop(island_bound_shp, bound)
 
-clipped_bound <- st_difference(bound$geometry,island_bound)
+clipped_bound <- st_difference(bound,island_bound)
 
 plot(clipped_bound)
+
+
 ```
 
 # Kriging january nitrogen data for Moorea lagoon/reef boundary
@@ -134,7 +136,8 @@ sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs =
                                  +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
                                  crs = crs))
 
-#vario gram and model selection - confirm ~1 and more clarity on variogram results
+
+#vario gram and model selection 
 jan_n_vario <- variogram(percent_n~1, as(sf_jan_n_data, "Spatial"))
 
 plot(jan_n_vario)
@@ -143,11 +146,10 @@ v_mod_full <- autofitVariogram(percent_n~1, as(sf_jan_n_data, "Spatial"))
 
 v_mod <- v_mod_full$var_model
 
-#What does the plateau tell us about the data?
 plot(v_mod_full)
 
 
-#making a gridded box with the bounds of the lat long in UTM - "centers" correct or should it be "polygons", "corners"?
+#making a gridded box with the bounds of the lat long in UTM 
 grd_sf <- sf_jan_n_data %>% 
   st_bbox() %>% 
   st_as_sfc() %>% 
@@ -159,7 +161,7 @@ grd_sf <- sf_jan_n_data %>%
 #Clipping the gridded box by the reef bound
 bound_grid <- st_intersection(grd_sf, clipped_bound)
 
-plot(bound_grid)
+#plot(bound_grid)
 
 
 #converting between formats and confirming grid
@@ -168,22 +170,43 @@ gridded(grd_sp) <- TRUE
 grd_sp <- as(grd_sp, "SpatialPixels")
 
 
-#krige - any reason to not use our fitted model?
+#krige 
 jan_krig <- krige(percent_n~1, as(sf_jan_n_data, "Spatial"), 
                   grd_sp, model = v_mod)
 
-  
+#convert kriged data to raster  
 jan_ras <- raster(jan_krig)
 
 sf_bound <- st_sf(clipped_bound)
+  
+#mask raster to boundary 
+final_clipped_jan_ras <- mask(jan_ras, sf_bound)
+```
 
-final_clipped_jan_ras <- mask(jan_ras, ras_bound)
+
+```{r}
+jan_data <- as.data.frame(rasterToPoints(jan_ras))
+pal <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
+
+leaflet() %>% 
+  addProviderTiles("Esri.WorldImagery") %>% 
+  addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
+                   color = "black", group = "Observations") %>% 
+  addRasterImage(final_clipped_jan_ras, colors = "plasma", group = "January N", opacity = 1) %>% 
+   addLayersControl(
+    baseGroups = c("January N"),
+    overlayGroups = c("Observations"),
+    options = layersControlOptions(collapsed = FALSE))  %>% 
+  addLegend(data = jan_data, title = 'Percent N', pal = pal,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "January N")
+
 
 ```
 
 # random ggplot for slides
 ```{r}
-jan_data <- as.data.frame(rasterToPoints(jan_ras))
+
 
 ggplot(data = jan_data) + 
   geom_raster(aes(x = x, y = y, fill = var1.pred)) +
@@ -199,25 +222,6 @@ ggplot(data = jan_data) +
         panel.grid.minor=element_blank(),
         plot.background=element_blank()) +
   ggtitle("January Turbinaria Ornata Nitrogen")
-
-
-```
-
-```{r}
-pal <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
-
-leaflet() %>% 
-  addProviderTiles("Esri.WorldImagery") %>% 
-  addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
-                   color = "black", group = "Observations") %>% 
-  addRasterImage(final_clipped_jan_ras, colors = "plasma", group = "January N") %>% 
-   addLayersControl(
-    baseGroups = c("January N"),
-    overlayGroups = c("Observations"),
-    options = layersControlOptions(collapsed = FALSE))  %>% 
-  addLegend(data = jan_data, title = 'Percent N', pal = pal,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "January N")
 
 
 ```
