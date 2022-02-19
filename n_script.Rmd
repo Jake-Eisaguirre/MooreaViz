@@ -20,6 +20,8 @@ library(automap)
 library(shiny)
 library(testthat)
 library(htmlwidgets)
+library(ggvoronoi)
+library(car)
 
 ```
 
@@ -72,9 +74,21 @@ ggplot()+
   geom_sf(data = bound_explore, col = "black", fill = NA) +
   theme_classic() +
   geom_point(data = jan_n_data, mapping = aes(x = longitude, y = latitude, color = percent_n_jan),
-             size = 3) + 
-  scale_color_viridis(option = "B") +
-  coord_sf(crs = crs)
+             size = 1) + 
+  scale_color_viridis(option = "B", "Predicted N") +
+  coord_sf(crs = crs) +
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+          axis.text.y=element_blank(),axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        plot.background=element_blank()) +
+  ggtitle("January Turbinaria Ornata Nitrogen")
+
+ggsave(here("explore_pred_n.jpeg"), dpi = 300, width = 7, height = 4, units = "in")
 
 
 
@@ -127,6 +141,7 @@ jan_n_data <- n_data %>%
   filter(date == "jan", method == "percent") %>%
   dplyr::select(longitude, latitude, percent_n) %>% 
   na.omit()
+
 
 #converting jan data to sf and changing lat long to UTM
 sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
@@ -190,7 +205,7 @@ plot(final_clipped_jan_ras)
 jan_data <- as.data.frame(rasterToPoints(jan_ras))
 pal <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
 
-leaflet() %>% 
+leaf <- leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
   addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
                    color = "black", group = "Observations") %>% 
@@ -203,7 +218,7 @@ leaflet() %>%
             position = "bottomright", 
             values = ~var1.pred, opacity = 1, group = "January N")
 
-
+saveWidget(leaf, file = here("leaf.html"))
 ```
 
 # random ggplot for slides
@@ -225,6 +240,35 @@ ggplot(data = jan_data) +
         plot.background=element_blank()) +
   ggtitle("January Turbinaria Ornata Nitrogen")
 
+ggsave(here("pred_n.jpeg"), dpi = 300, width = 7, height = 4, units = "in")
 
+
+```
+#### Model Check
+```{r}
+
+#normally distributed data points
+ggplot(jan_n_data) +
+  geom_histogram(aes(x = percent_n)) +
+  theme_classic()
+ggsave(here("norm_dist.jpeg"), dpi = 300)
+
+qqPlot(jan_n_data$percent_n)
+
+#data is stationary 
+
+spdf <- as(clipped_bound, "Spatial")
+
+utm_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs)) %>% 
+  as.data.frame(dplyr::select(percent_n, geometry))
+
+ggplot(jan_n_data) +
+  geom_voronoi(aes(x = longitude, y = latitude, fill = percent_n), outline = spdf) +
+  scale_fill_viridis_c(option = "plasma", "Predicted N")
 ```
 
