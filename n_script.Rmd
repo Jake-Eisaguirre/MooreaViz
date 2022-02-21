@@ -25,15 +25,201 @@ library(car)
 
 ```
 
+# read in data
 ```{r}
 n_data <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_N_summary_20200331.csv")) %>% 
   clean_names()
 
-nut_bound <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_Nut_boundary_20200331.csv")) %>% 
-  as.data.frame()
-
-
+new_reef <- read_csv(here("reef_bound", "reef_bound.csv"))
   
+```
+
+# Tidy format nitrogen data
+```{r}
+
+n_data <- n_data %>% 
+  pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
+  separate(type, into = c("method","random", "date"), sep = "_") %>% 
+  dplyr::select(-random)
+
+```
+
+# Prepping shapefiles, boundary, and gridded boundary
+```{r}
+#moorea crs EPSG:2976 
+crs <- 2976
+
+#reef bound in UTM
+bound <- new_reef %>% 
+  st_as_sf(coords = c("Long", "Lat"), crs = 4326) %>% 
+  mutate(geometry = st_transform(geometry, "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs)) %>% 
+  summarise(geometry = st_combine(geometry)) %>% 
+  st_cast("POLYGON") %>% 
+  st_set_crs(crs)
+
+#Island Bound in UTM
+island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>% 
+  mutate(geometry = st_transform(geometry, "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs)) %>% 
+  dplyr::select(geometry)
+
+#clipping reef boundary 
+island_bound <- st_crop(island_bound_shp, bound)
+
+clipped_bound <- st_difference(bound,island_bound)
+
+
+#making a gridded box with the bounds of the lat long in UTM 
+grd_sf <- clipped_bound %>% 
+  st_bbox() %>% 
+  st_as_sfc() %>% 
+  st_make_grid(cellsize = c(25, 25), what = "centers") %>%
+  st_as_sf() %>% 
+  cbind(., st_coordinates(.)) 
+
+
+#Clipping the gridded box by the reef bound
+bound_grid <- st_intersection(grd_sf, clipped_bound)
+
+#converting between formats and confirming grid
+grd_sp <- as(bound_grid, "Spatial") 
+gridded(grd_sp) <- TRUE           
+grd_sp <- as(grd_sp, "SpatialPixels")
+
+
+```
+
+# Kriging january nitrogen data for Moorea lagoon/reef boundary
+```{r}
+# selecting n-jan data
+jan_np_data <- n_data %>% 
+  filter(date == "jan", method == "percent") %>%
+  dplyr::select(longitude, latitude, percent_n) %>% 
+  na.omit()
+
+
+#converting jan data to sf and changing lat long to UTM
+sf_jan_np_data <- st_as_sf(jan_np_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+
+#vario gram and model selection 
+jan_np_vario <- variogram(percent_n~1, as(sf_jan_np_data, "Spatial"))
+
+plot(jan_np_vario)
+
+v_mod_full <- autofitVariogram(percent_n~1, as(sf_jan_np_data, "Spatial"))
+
+v_mod <- v_mod_full$var_model
+
+plot(v_mod_full)
+
+
+#krige 
+jan_krig_p <- krige(percent_n~1, as(sf_jan_np_data, "Spatial"), 
+                  grd_sp, model = v_mod)
+
+#convert kriged data to raster  
+jan_ras <- raster(jan_krig_p)
+
+```
+# Allies Box
+```{r}
+
+```
+
+# Jakes Box
+```{r}
+
+```
+
+# leaf for slides
+```{r}
+jan_data <- as.data.frame(rasterToPoints(jan_ras))
+pal <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
+
+leaflet() %>% 
+  addProviderTiles("Esri.WorldImagery") %>% 
+  addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
+                   color = "black", group = "Observations") %>% 
+  addRasterImage(jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
+   addLayersControl(
+    baseGroups = c("January N"),
+    overlayGroups = c("Observations"),
+    options = layersControlOptions(collapsed = FALSE))  %>% 
+  addLegend(data = jan_data, title = 'Percent N', pal = pal,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "January N")
+
+saveWidget(leaf, file = here("leaf.html"))
+```
+
+# random ggplot for slides
+```{r}
+
+
+ggplot(data = jan_data) + 
+  geom_raster(aes(x = x, y = y, fill = var1.pred)) +
+  scale_fill_viridis_c(option = "plasma", "Predicted N") +
+  theme_classic() +
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+          axis.text.y=element_blank(),axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        plot.background=element_blank()) +
+  ggtitle("January Turbinaria Ornata Nitrogen")
+
+ggsave(here("pred_n.jpeg"), dpi = 300, width = 7, height = 4, units = "in")
+
+
+```
+#### Model Check
+```{r}
+
+#### Kriging can be understood as a two-step process: first, the spatial covariance structure of the sampled points is determined by fitting a variogram; and second, weights derived from this covariance structure are used to interpolate values for unsampled points or blocks across the spatial field.
+
+#### variogram (sometimes called a “semivariogram”) is a visual depiction of the covariance exhibited between each pair of points in the sampled data. For each pair of points in the sampled data, the gamma-value or “semi-variance” (a measure of the half mean-squared difference between their values) is plotted against the distance, or “lag”, between them.
+
+###Ordinary kriging, for which the assumption of stationarity (that the mean and variance of the values is constant across the spatial field) must be assumed. This is one of the simplest forms of kriging, but the stationarity assumption is not often met in applications relevant to environmental health, such as air pollution distributions.
+
+#### Universal kriging is used to estimate spatial means when the data have a strong trend and the trend can be modeled by simple functions. Trend is scale dependent.
+
+####Ordinary Kriging is a spatial estimation method where the error variance is minimized. This error variance is called the kriging variance. It is based on the configuration of the data and on the variogram, hence is is homoescedastic
+
+#normally distributed data points
+ggplot(jan_n_data) +
+  geom_histogram(aes(x = percent_n)) +
+  theme_classic()
+ggsave(here("norm_dist.jpeg"), dpi = 300)
+
+qqPlot(jan_n_data$percent_n)
+
+#data is stationary 
+
+spdf <- as(clipped_bound, "Spatial")
+
+utm_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs)) %>% 
+  as.data.frame(dplyr::select(percent_n, geometry))
+
+ggplot(jan_n_data) +
+  geom_voronoi(aes(x = longitude, y = latitude, fill = percent_n), outline = spdf) +
+  scale_fill_viridis_c(option = "plasma", "Predicted N")
 ```
 ### This is all exploratory stuff and writing .shp for reef bound
 ```{r}
@@ -93,182 +279,3 @@ ggsave(here("explore_pred_n.jpeg"), dpi = 300, width = 7, height = 4, units = "i
 
 
 ```
-# Tidy format nitrogen data
-```{r}
-
-n_data <- n_data %>% 
-  pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
-  separate(type, into = c("method","random", "date"), sep = "_") %>% 
-  dplyr::select(-random)
-
-```
-
-# Prepping shapefiles and boundary
-```{r}
-#moorea crs EPSG:2976 
-crs <- 2976
-
-#reef bound in UTM
-bound <- nut_bound %>% 
-  st_as_sf(coords = c("X", "Y"), crs = 4326) %>% 
-  summarise(geometry = st_combine(geometry)) %>% 
-  st_cast("POLYGON") %>% 
-  st_set_crs(crs) %>% 
-  st_buffer(750)
-
-#Island Bound in UTM
-island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>% 
-  mutate(geometry = st_transform(geometry, 
-                                 "+proj=utm +zone=6 +south +ellps=intl 
-                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-                                 crs = crs)) %>% 
-  dplyr::select(geometry)
-
-#clipping reef boundary 
-island_bound <- st_crop(island_bound_shp, bound)
-
-clipped_bound <- st_difference(bound,island_bound)
-
-plot(clipped_bound)
-
-
-```
-
-# Kriging january nitrogen data for Moorea lagoon/reef boundary
-```{r}
-# selecting n-jan data
-jan_n_data <- n_data %>% 
-  filter(date == "jan", method == "percent") %>%
-  dplyr::select(longitude, latitude, percent_n) %>% 
-  na.omit()
-
-
-#converting jan data to sf and changing lat long to UTM
-sf_jan_n_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
-  cbind(st_coordinates(.)) %>% 
-  mutate(geometry = st_transform(geometry, 
-                                 "+proj=utm +zone=6 +south +ellps=intl 
-                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-                                 crs = crs))
-
-
-#vario gram and model selection 
-jan_n_vario <- variogram(percent_n~1, as(sf_jan_n_data, "Spatial"))
-
-plot(jan_n_vario)
-
-v_mod_full <- autofitVariogram(percent_n~1, as(sf_jan_n_data, "Spatial"))
-
-v_mod <- v_mod_full$var_model
-
-plot(v_mod_full)
-
-
-#making a gridded box with the bounds of the lat long in UTM 
-grd_sf <- sf_jan_n_data %>% 
-  st_bbox() %>% 
-  st_as_sfc() %>% 
-  st_make_grid(cellsize = c(25, 25), what = "centers") %>%
-  st_as_sf() %>% 
-  cbind(., st_coordinates(.)) 
-
-
-#Clipping the gridded box by the reef bound
-bound_grid <- st_intersection(grd_sf, clipped_bound)
-
-#plot(bound_grid)
-
-
-#converting between formats and confirming grid
-grd_sp <- as(bound_grid, "Spatial") 
-gridded(grd_sp) <- TRUE           
-grd_sp <- as(grd_sp, "SpatialPixels")
-
-
-#krige 
-jan_krig <- krige(percent_n~1, as(sf_jan_n_data, "Spatial"), 
-                  grd_sp, model = v_mod)
-
-#convert kriged data to raster  
-jan_ras <- raster(jan_krig)
-
-sf_bound <- st_sf(clipped_bound)
-  
-#mask raster to boundary 
-final_clipped_jan_ras <- mask(jan_ras, sf_bound)
-
-plot(final_clipped_jan_ras)
-```
-
-
-```{r}
-jan_data <- as.data.frame(rasterToPoints(jan_ras))
-pal <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
-
-leaf <- leaflet() %>% 
-  addProviderTiles("Esri.WorldImagery") %>% 
-  addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
-                   color = "black", group = "Observations") %>% 
-  addRasterImage(final_clipped_jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
-   addLayersControl(
-    baseGroups = c("January N"),
-    overlayGroups = c("Observations"),
-    options = layersControlOptions(collapsed = FALSE))  %>% 
-  addLegend(data = jan_data, title = 'Percent N', pal = pal,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "January N")
-
-saveWidget(leaf, file = here("leaf.html"))
-```
-
-# random ggplot for slides
-```{r}
-
-
-ggplot(data = jan_data) + 
-  geom_raster(aes(x = x, y = y, fill = var1.pred)) +
-  scale_fill_viridis_c(option = "plasma", "Predicted N") +
-  theme_classic() +
-  theme(axis.line=element_blank(),axis.text.x=element_blank(),
-          axis.text.y=element_blank(),axis.ticks=element_blank(),
-          axis.title.x=element_blank(),
-          axis.title.y=element_blank(),
-          panel.background=element_blank(),
-        panel.border=element_blank(),
-        panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank(),
-        plot.background=element_blank()) +
-  ggtitle("January Turbinaria Ornata Nitrogen")
-
-ggsave(here("pred_n.jpeg"), dpi = 300, width = 7, height = 4, units = "in")
-
-
-```
-#### Model Check
-```{r}
-
-#normally distributed data points
-ggplot(jan_n_data) +
-  geom_histogram(aes(x = percent_n)) +
-  theme_classic()
-ggsave(here("norm_dist.jpeg"), dpi = 300)
-
-qqPlot(jan_n_data$percent_n)
-
-#data is stationary 
-
-spdf <- as(clipped_bound, "Spatial")
-
-utm_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
-  cbind(st_coordinates(.)) %>% 
-  mutate(geometry = st_transform(geometry, 
-                                 "+proj=utm +zone=6 +south +ellps=intl 
-                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-                                 crs = crs)) %>% 
-  as.data.frame(dplyr::select(percent_n, geometry))
-
-ggplot(jan_n_data) +
-  geom_voronoi(aes(x = longitude, y = latitude, fill = percent_n), outline = spdf) +
-  scale_fill_viridis_c(option = "plasma", "Predicted N")
-```
-
