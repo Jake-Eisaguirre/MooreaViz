@@ -31,6 +31,8 @@ n_data <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_N_summary_
   clean_names()
 
 new_reef <- read_csv(here("reef_bound", "reef_bound.csv"))
+
+bleach <- read_csv(here("MCR_LTER_Burkepile_Adams_2016_Coral_Bleaching_Survey_20191023.csv"))
   
 ```
 
