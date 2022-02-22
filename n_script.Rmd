@@ -76,7 +76,7 @@ clipped_bound <- st_difference(bound,island_bound)
 grd_sf <- clipped_bound %>% 
   st_bbox() %>% 
   st_as_sfc() %>% 
-  st_make_grid(cellsize = c(25, 25), what = "centers") %>%
+  st_make_grid(cellsize = c(100, 100), what = "centers") %>%
   st_as_sf() %>% 
   cbind(., st_coordinates(.)) 
 
@@ -178,7 +178,7 @@ plot(may_ras)
 ```{r}
 # selecting n-july data
 july_np_data <- n_data %>% 
-  filter(date == "", method == "percent") %>%
+  filter(date == "july", method == "percent") %>%
   dplyr::select(longitude, latitude, percent_n) %>% 
   na.omit()
 
@@ -210,7 +210,10 @@ july_krig_p <- krige(percent_n~1, as(sf_july_np_data, "Spatial"),
 
 #convert kriged data to raster  
 july_ras <- raster(july_krig_p)
+
+plot(july_ras)
 ```
+
 
 
 # Jakes Box
@@ -221,20 +224,42 @@ july_ras <- raster(july_krig_p)
 # leaf for slides
 ```{r}
 jan_data <- as.data.frame(rasterToPoints(jan_ras))
-pal <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
+pal_jan <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
+
+may_data <- as.data.frame(rasterToPoints(may_ras))
+pal_may <- colorNumeric(palette = viridis((25), option = "plasma"), domain = may_data$var1.pred)
 
 leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
-  addCircleMarkers(lng = jan_n_data$longitude, lat = jan_n_data$latitude,
+  addCircleMarkers(lng = jan_np_data$longitude, lat = jan_np_data$latitude,
                    color = "black", group = "Observations") %>% 
   addRasterImage(jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
-   addLayersControl(
-    baseGroups = c("January N"),
+  addRasterImage(may_ras, colors = "plasma", group = "May N", opacity = 0.7) %>% 
+  addLayersControl(
+    baseGroups = c("January N", "May N"),
     overlayGroups = c("Observations"),
     options = layersControlOptions(collapsed = FALSE))  %>% 
-  addLegend(data = jan_data, title = 'Percent N', pal = pal,
+  addLegend(data = jan_data, title = 'January N', pal = pal_jan,
             position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "January N")
+            values = ~var1.pred, opacity = 1, group = "January N") %>% 
+  onRender("
+    function(el, x) {
+      var updateLegend = function () {
+          var selectedGroup =       document.querySelectorAll('input:checked')[0].nextSibling.innerText.substr(1);
+
+          document.querySelectorAll('.legend').forEach(a => a.hidden=true);
+          document.querySelectorAll('.legend').forEach(l => {
+            if (l.children[0].children[0].innerText == selectedGroup) l.hidden=false;
+          });
+      };
+      updateLegend();
+      this.on('baselayerchange', e => updateLegend());
+    }") %>% 
+  addLegend(data = may_data, title = 'May N', pal = pal_may,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "May N")
+  
+  
 
 saveWidget(leaf, file = here("leaf.html"))
 ```
