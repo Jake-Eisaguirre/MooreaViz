@@ -130,10 +130,88 @@ jan_krig_p <- krige(percent_n~1, as(sf_jan_np_data, "Spatial"),
 jan_ras <- raster(jan_krig_p)
 
 ```
-# Allies Box
-```{r}
 
+
+# Kriging may nitrogen data for Moorea lagoon/reef boundary
+```{r}
+# selecting n-may data
+may_np_data <- n_data %>% 
+  filter(date == "may", method == "percent") %>%
+  dplyr::select(longitude, latitude, percent_n) %>% 
+  na.omit()
+
+
+#converting may data to sf and changing lat long to UTM
+sf_may_np_data <- st_as_sf(may_np_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+
+#vario gram and model selection 
+may_np_vario <- variogram(percent_n~1, as(sf_may_np_data, "Spatial"))
+
+plot(may_np_vario)
+
+v_mod_full_may <- autofitVariogram(percent_n~1, as(sf_may_np_data, "Spatial"))
+
+v_mod_may <- v_mod_full_may$var_model
+
+plot(v_mod_full_may)
+
+
+#krige 
+may_krig_p <- krige(percent_n~1, as(sf_may_np_data, "Spatial"), 
+                  grd_sp, model = v_mod_may)
+
+#convert kriged data to raster  
+may_ras <- raster(may_krig_p)
+
+plot(may_ras)
 ```
+
+
+# Kriging July nitrogen data for Moorea lagoon/reef boundary
+
+```{r}
+# selecting n-july data
+july_np_data <- n_data %>% 
+  filter(date == "", method == "percent") %>%
+  dplyr::select(longitude, latitude, percent_n) %>% 
+  na.omit()
+
+
+#converting july data to sf and changing lat long to UTM
+sf_july_np_data <- st_as_sf(july_np_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+
+#vario gram and model selection 
+july_np_vario <- variogram(percent_n~1, as(sf_july_np_data, "Spatial"))
+
+plot(july_np_vario)
+
+v_mod_full_july <- autofitVariogram(percent_n~1, as(sf_july_np_data, "Spatial"))
+
+v_mod_july <- v_mod_full_july$var_model
+
+plot(v_mod_full_july)
+
+
+#krige 
+july_krig_p <- krige(percent_n~1, as(sf_july_np_data, "Spatial"), 
+                  grd_sp, model = v_mod_july)
+
+#convert kriged data to raster  
+july_ras <- raster(july_krig_p)
+```
+
 
 # Jakes Box
 ```{r}
