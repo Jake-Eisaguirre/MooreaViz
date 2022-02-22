@@ -117,16 +117,16 @@ jan_np_vario <- variogram(percent_n~1, as(sf_jan_np_data, "Spatial"))
 
 plot(jan_np_vario)
 
-v_mod_full <- autofitVariogram(percent_n~1, as(sf_jan_np_data, "Spatial"))
+v_mod_full_jan <- autofitVariogram(percent_n~1, as(sf_jan_np_data, "Spatial"))
 
-v_mod <- v_mod_full$var_model
+v_mod_jan <- v_mod_full_jan$var_model
 
-plot(v_mod_full)
+plot(v_mod_full_jan)
 
 
 #krige 
 jan_krig_p <- krige(percent_n~1, as(sf_jan_np_data, "Spatial"), 
-                  grd_sp, model = v_mod)
+                  grd_sp, model = v_mod_jan)
 
 #convert kriged data to raster  
 jan_ras <- raster(jan_krig_p)
