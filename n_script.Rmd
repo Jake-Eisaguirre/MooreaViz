@@ -216,6 +216,125 @@ july_ras <- raster(july_krig_p)
 plot(july_ras)
 ```
 
+# Kriging january nitrogen isotopic data for Moorea lagoon/reef boundary
+```{r}
+# selecting n-jan data
+jan_ni_data <- n_data %>% 
+  filter(date == "jan", method == "d15n") %>%
+  dplyr::select(longitude, latitude, percent_n) %>% 
+  na.omit()
+
+
+#converting jan data to sf and changing lat long to UTM
+sf_jan_ni_data <- st_as_sf(jan_ni_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+
+#vario gram and model selection 
+jan_ni_vario <- variogram(percent_n~1, as(sf_jan_ni_data, "Spatial"))
+
+plot(jan_ni_vario)
+
+v_mod_full_jan_i <- autofitVariogram(percent_n~1, as(sf_jan_ni_data, "Spatial"))
+
+v_mod_jan_i <- v_mod_full_jan_i$var_model
+
+plot(v_mod_full_jan_i)
+
+
+#krige 
+jan_krig_i <- krige(percent_n~1, as(sf_jan_ni_data, "Spatial"), 
+                  grd_sp, model = v_mod_jan_i)
+
+#convert kriged data to raster  
+jan_ras_i <- raster(jan_krig_i)
+
+plot(jan_ras_i)
+```
+# Kriging may nitrogen isotopic data for Moorea lagoon/reef boundary
+```{r}
+# selecting n-may data
+may_ni_data <- n_data %>% 
+  filter(date == "may", method == "d15n") %>%
+  dplyr::select(longitude, latitude, percent_n) %>% 
+  na.omit()
+
+
+#converting may data to sf and changing lat long to UTM
+sf_may_ni_data <- st_as_sf(may_ni_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+
+#vario gram and model selection 
+may_ni_vario <- variogram(percent_n~1, as(sf_may_ni_data, "Spatial"))
+
+plot(may_ni_vario)
+
+v_mod_full_may_i <- autofitVariogram(percent_n~1, as(sf_may_ni_data, "Spatial"))
+
+v_mod_may_i <- v_mod_full_may_i$var_model
+
+plot(v_mod_full_may_i)
+
+
+#krige 
+may_krig_i <- krige(percent_n~1, as(sf_may_ni_data, "Spatial"), 
+                  grd_sp, model = v_mod_may_i)
+
+#convert kriged data to raster  
+may_ras_i <- raster(may_krig_i)
+
+plot(may_ras_i)
+```
+
+
+# Kriging july nitrogen isotopic data for Moorea lagoon/reef boundary
+```{r}
+# selecting n-july data
+july_ni_data <- n_data %>% 
+  filter(date == "july", method == "d15n") %>%
+  dplyr::select(longitude, latitude, percent_n) %>% 
+  na.omit()
+
+
+#converting july data to sf and changing lat long to UTM
+sf_july_ni_data <- st_as_sf(july_ni_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+
+#vario gram and model selection 
+july_ni_vario <- variogram(percent_n~1, as(sf_july_ni_data, "Spatial"))
+
+plot(july_ni_vario)
+
+v_mod_full_july_i <- autofitVariogram(percent_n~1, as(sf_july_ni_data, "Spatial"))
+
+v_mod_july_i <- v_mod_full_july_i$var_model
+
+plot(v_mod_full_july_i)
+
+
+#krige 
+july_krig_i <- krige(percent_n~1, as(sf_july_ni_data, "Spatial"), 
+                  grd_sp, model = v_mod_july_i)
+
+#convert kriged data to raster  
+july_ras_i <- raster(july_krig_i)
+
+plot(july_ras_i)
+```
 
 
 # Jakes Box
