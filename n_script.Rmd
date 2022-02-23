@@ -342,13 +342,35 @@ plot(july_ras_i)
 
 ```
 
-# leaf for slides
+# rasters and palettes 
 ```{r}
+# percent nitrogen 
 jan_data <- as.data.frame(rasterToPoints(jan_ras))
 pal_jan <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
 
 may_data <- as.data.frame(rasterToPoints(may_ras))
 pal_may <- colorNumeric(palette = viridis((25), option = "plasma"), domain = may_data$var1.pred)
+
+july_data <- as.data.frame(rasterToPoints(july_ras))
+pal_july <- colorNumeric(palette = viridis((25), option = "plasma"), domain = july_data$var1.pred)
+
+# isotopic nitrogen 
+
+jan_i_data <- as.data.frame(rasterToPoints(jan_ras_i))
+pal_jan_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_data$var1.pred)
+
+may_i_data <- as.data.frame(rasterToPoints(may_ras_i))
+pal_may_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = may_data$var1.pred)
+
+july_i_data <- as.data.frame(rasterToPoints(july_ras_i))
+pal_july_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = july_data$var1.pred)
+
+```
+
+
+
+# leaf for slides
+```{r}
 
 leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
@@ -356,8 +378,17 @@ leaflet() %>%
                    color = "black", group = "Observations") %>% 
   addRasterImage(jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
   addRasterImage(may_ras, colors = "plasma", group = "May N", opacity = 0.7) %>% 
+  addRasterImage(july_ras, colors = "plasma", group = "July N", opacity = 0.7) %>% 
+  addRasterImage(jan_ras_i, colors = "plasma", group = "January N Isotopic", opacity = 0.7) %>% 
+  addRasterImage(may_ras_i, colors = "plasma", group = "May N Isotopic", opacity = 0.7) %>% 
+  addRasterImage(july_ras_i, colors = "plasma", group = "July N Isotopic", opacity = 0.7) %>%
   addLayersControl(
-    baseGroups = c("January N", "May N"),
+    baseGroups = c("January N", 
+                   "May N", 
+                   "July N", 
+                   "January N Isotopic", 
+                   "May N Isotopic", 
+                   "July N Isotopic"),
     overlayGroups = c("Observations"),
     options = layersControlOptions(collapsed = FALSE))  %>% 
   addLegend(data = jan_data, title = 'January N', pal = pal_jan,
@@ -378,9 +409,19 @@ leaflet() %>%
     }") %>% 
   addLegend(data = may_data, title = 'May N', pal = pal_may,
             position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "May N")
-  
-  
+            values = ~var1.pred, opacity = 1, group = "May N") %>% 
+  addLegend(data = may_data, title = 'July N', pal = pal_may,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "July N") %>% 
+  addLegend(data = may_data, title = 'January N Isotopic', pal = pal_may,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "January N Isotopic") %>% 
+  addLegend(data = may_data, title = 'May N Isotopic', pal = pal_may,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "May N Isotopic") %>% 
+  addLegend(data = may_data, title = 'July N Isotopic', pal = pal_may,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "July N Isotopic")
 
 saveWidget(leaf, file = here("leaf.html"))
 ```
