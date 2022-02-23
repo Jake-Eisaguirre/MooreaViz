@@ -22,6 +22,7 @@ library(testthat)
 library(htmlwidgets)
 library(ggvoronoi)
 library(car)
+library(dismo)
 
 ```
 
@@ -32,8 +33,8 @@ n_data <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_N_summary_
 
 new_reef <- read_csv(here("reef_bound", "reef_bound.csv"))
 
-bleach <- read_csv(here("MCR_LTER_Burkepile_Adams_2016_Coral_Bleaching_Survey_20191023.csv"))
-  
+bleach <- read_csv(here("MCR_LTER_Burkepile_Adams_2016_Coral_Bleaching_Survey_20191023.csv")) %>% 
+  clean_names()
 ```
 
 # Tidy format nitrogen data
@@ -222,6 +223,38 @@ plot(july_ras)
 ```{r}
 
 ```
+
+# Percent Bleached
+```{r}
+#Select column
+bleaching_data <- bleach %>% 
+  dplyr::select(latitude, longitude, percent_bleached) %>% 
+  na.omit()
+
+#converting bleach data to sf and changing lat long to UTM
+sf_bleached_data <- st_as_sf(bleaching_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+#vario gram and model selection 
+bleach_vario <- variogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
+
+plot(bleach_vario)
+
+v_mod_full_bleach <- autofitVariogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
+
+v_mod_bleach <- v_mod_full_bleach$var_model
+
+plot(v_mod_full_bleach)
+
+july_krig_p <- krige(percent_bleached~1, as(sf_bleached_data, "Spatial"), 
+                  grd_sp, model = "power")
+
+```
+
 
 # leaf for slides
 ```{r}
