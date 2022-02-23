@@ -346,40 +346,37 @@ plot(july_ras_i)
 
 # Percent Bleached
 ```{r}
-#Select column
-bleaching_data <- bleach %>% 
-  dplyr::select(latitude, longitude, percent_bleached) %>% 
-  na.omit()
-
-#converting bleach data to sf and changing lat long to UTM
-sf_bleached_data <- st_as_sf(bleaching_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
-  cbind(st_coordinates(.)) %>% 
-  mutate(geometry = st_transform(geometry, 
-                                 "+proj=utm +zone=6 +south +ellps=intl 
-                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-                                 crs = crs))
-
-#vario gram and model selection 
-bleach_vario <- variogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
-
-plot(bleach_vario)
-
-v_mod_full_bleach <- autofitVariogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
-
-v_mod_bleach <- v_mod_full_bleach$var_model
-
-plot(v_mod_full_bleach)
-
-july_krig_p <- krige(percent_bleached~1, as(sf_bleached_data, "Spatial"), 
-                  grd_sp, model = "power")
+# #Select column
+# bleaching_data <- bleach %>% 
+#   dplyr::select(latitude, longitude, percent_bleached) %>% 
+#   na.omit()
+# 
+# #converting bleach data to sf and changing lat long to UTM
+# sf_bleached_data <- st_as_sf(bleaching_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+#   cbind(st_coordinates(.)) %>% 
+#   mutate(geometry = st_transform(geometry, 
+#                                  "+proj=utm +zone=6 +south +ellps=intl 
+#                                  +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+#                                  crs = crs))
+# 
+# #vario gram and model selection 
+# bleach_vario <- variogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
+# 
+# plot(bleach_vario)
+# 
+# v_mod_full_bleach <- autofitVariogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
+# 
+# v_mod_bleach <- v_mod_full_bleach$var_model
+# 
+# plot(v_mod_full_bleach)
+# 
+# july_krig_p <- krige(percent_bleached~1, as(sf_bleached_data, "Spatial"), 
+#                   grd_sp, model = "power")
 
 ```
 
 
-# leaf for slides
-
 # rasters and palettes 
-
 ```{r}
 # percent nitrogen 
 jan_data <- as.data.frame(rasterToPoints(jan_ras))
@@ -460,7 +457,7 @@ leaflet() %>%
             position = "bottomright", 
             values = ~var1.pred, opacity = 1, group = "July N Isotopic")
 
-saveWidget(leaf, file = here("leaf.html"))
+#saveWidget(leaf, file = here("leaf.html"))
 ```
 
 # random ggplot for slides
