@@ -28,13 +28,19 @@ library(dismo)
 
 # read in data
 ```{r}
-n_data <- read_csv(here("knb-lter-mcr.5038.10", "MCR_LTER_Adam_EcolAp_N_summary_20200331.csv")) %>% 
+#nitrogren data
+n_data <- read_csv(here("data", "csv", "N_summary_2016.csv")) %>% 
   clean_names()
 
-new_reef <- read_csv(here("reef_bound", "reef_bound.csv"))
-
-bleach <- read_csv(here("MCR_LTER_Burkepile_Adams_2016_Coral_Bleaching_Survey_20191023.csv")) %>% 
+#bleaching data
+bleach <- read_csv(here("data", "csv", "percent_bleach_2016.csv")) %>% 
   clean_names()
+
+#10x10 grid for kriging
+grd_sp <- readRDS(here("data", "krig_grid", "grd_sp"))
+
+#moorea crs EPSG:2976
+crs <- 2976
 ```
 
 # Tidy format nitrogen data
@@ -47,53 +53,7 @@ n_data <- n_data %>%
 
 ```
 
-# Prepping shapefiles, boundary, and gridded boundary
-```{r}
-#moorea crs EPSG:2976 
-crs <- 2976
 
-#reef bound in UTM
-bound <- new_reef %>% 
-  st_as_sf(coords = c("Long", "Lat"), crs = 4326) %>% 
-  mutate(geometry = st_transform(geometry, "+proj=utm +zone=6 +south +ellps=intl 
-                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-                                 crs = crs)) %>% 
-  summarise(geometry = st_combine(geometry)) %>% 
-  st_cast("POLYGON") %>% 
-  st_set_crs(crs)
-
-#Island Bound in UTM
-island_bound_shp <- read_sf(here("island", "bh400kc3500.shp")) %>% 
-  mutate(geometry = st_transform(geometry, "+proj=utm +zone=6 +south +ellps=intl 
-                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-                                 crs = crs)) %>% 
-  dplyr::select(geometry)
-
-#clipping reef boundary 
-island_bound <- st_crop(island_bound_shp, bound)
-
-clipped_bound <- st_difference(bound,island_bound)
-
-
-#making a gridded box with the bounds of the lat long in UTM 
-grd_sf <- clipped_bound %>% 
-  st_bbox() %>% 
-  st_as_sfc() %>% 
-  st_make_grid(cellsize = c(100, 100), what = "centers") %>%
-  st_as_sf() %>% 
-  cbind(., st_coordinates(.)) 
-
-
-#Clipping the gridded box by the reef bound
-bound_grid <- st_intersection(grd_sf, clipped_bound)
-
-#converting between formats and confirming grid
-grd_sp <- as(bound_grid, "Spatial") 
-gridded(grd_sp) <- TRUE           
-grd_sp <- as(grd_sp, "SpatialPixels")
-
-
-```
 
 # Kriging january nitrogen data for Moorea lagoon/reef boundary
 ```{r}
@@ -131,6 +91,7 @@ jan_krig_p <- krige(percent_n~1, as(sf_jan_np_data, "Spatial"),
 
 #convert kriged data to raster  
 jan_ras <- raster(jan_krig_p)
+
 
 ```
 
@@ -460,121 +421,3 @@ leaflet() %>%
 #saveWidget(leaf, file = here("leaf.html"))
 ```
 
-# random ggplot for slides
-```{r}
-
-
-ggplot(data = jan_data) + 
-  geom_raster(aes(x = x, y = y, fill = var1.pred)) +
-  scale_fill_viridis_c(option = "plasma", "Predicted N") +
-  theme_classic() +
-  theme(axis.line=element_blank(),axis.text.x=element_blank(),
-          axis.text.y=element_blank(),axis.ticks=element_blank(),
-          axis.title.x=element_blank(),
-          axis.title.y=element_blank(),
-          panel.background=element_blank(),
-        panel.border=element_blank(),
-        panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank(),
-        plot.background=element_blank()) +
-  ggtitle("January Turbinaria Ornata Nitrogen")
-
-ggsave(here("pred_n.jpeg"), dpi = 300, width = 7, height = 4, units = "in")
-
-
-```
-#### Model Check
-```{r}
-
-#### Kriging can be understood as a two-step process: first, the spatial covariance structure of the sampled points is determined by fitting a variogram; and second, weights derived from this covariance structure are used to interpolate values for unsampled points or blocks across the spatial field.
-
-#### variogram (sometimes called a “semivariogram”) is a visual depiction of the covariance exhibited between each pair of points in the sampled data. For each pair of points in the sampled data, the gamma-value or “semi-variance” (a measure of the half mean-squared difference between their values) is plotted against the distance, or “lag”, between them.
-
-###Ordinary kriging, for which the assumption of stationarity (that the mean and variance of the values is constant across the spatial field) must be assumed. This is one of the simplest forms of kriging, but the stationarity assumption is not often met in applications relevant to environmental health, such as air pollution distributions.
-
-#### Universal kriging is used to estimate spatial means when the data have a strong trend and the trend can be modeled by simple functions. Trend is scale dependent.
-
-####Ordinary Kriging is a spatial estimation method where the error variance is minimized. This error variance is called the kriging variance. It is based on the configuration of the data and on the variogram, hence is is homoescedastic
-
-#normally distributed data points
-ggplot(jan_n_data) +
-  geom_histogram(aes(x = percent_n)) +
-  theme_classic()
-ggsave(here("norm_dist.jpeg"), dpi = 300)
-
-qqPlot(jan_n_data$percent_n)
-
-#data is stationary 
-
-spdf <- as(clipped_bound, "Spatial")
-
-utm_data <- st_as_sf(jan_n_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
-  cbind(st_coordinates(.)) %>% 
-  mutate(geometry = st_transform(geometry, 
-                                 "+proj=utm +zone=6 +south +ellps=intl 
-                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-                                 crs = crs)) %>% 
-  as.data.frame(dplyr::select(percent_n, geometry))
-
-ggplot(jan_n_data) +
-  geom_voronoi(aes(x = longitude, y = latitude, fill = percent_n), outline = spdf) +
-  scale_fill_viridis_c(option = "plasma", "Predicted N")
-```
-### This is all exploratory stuff and writing .shp for reef bound
-```{r}
-#moorea crs EPSG:2976???
-crs <- 2976
-
-jan_n_data <- n_data %>% 
-  dplyr::select(longitude, latitude, percent_n_jan) %>% 
-  na.omit()
-
-
-#data plot
-ggplot() +
-  geom_point(data = jan_n_data, mapping = aes(x = longitude, y = latitude, color = percent_n_jan),
-             size = 3) + 
-  scale_color_viridis(option = "B") +
-  theme_classic()
-
-
-#this boundary is normal lat long
-bound_explore <- nut_bound %>% 
-  st_as_sf(coords = c("X", "Y"), crs = crs) %>%
-  summarise(geometry = st_combine(geometry)) %>% 
-  st_cast("POLYGON") %>% 
-  mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84"))
-
-#code to save shape file. once we determine best shape file, current one is wrong. might be better to get shape file of moorea
-#and use that for inner bound and then use current outter bound.
-shp_bound <- st_write(bound_explore, here("shape_files", "bound.shp"), delete_dsn=TRUE)
-
-bound_explore <- read_sf(here("shape_files", "bound.shp")) %>% 
-   mutate(geometry = st_transform(geometry, "+proj=longlat +ellps=WGS84 +datum=WGS84")) %>% 
-  st_set_crs(crs)
-
-
-#reef bound and data point plot
-ggplot()+
-  geom_sf(data = bound_explore, col = "black", fill = NA) +
-  theme_classic() +
-  geom_point(data = jan_n_data, mapping = aes(x = longitude, y = latitude, color = percent_n_jan),
-             size = 1) + 
-  scale_color_viridis(option = "B", "Predicted N") +
-  coord_sf(crs = crs) +
-  theme(axis.line=element_blank(),axis.text.x=element_blank(),
-          axis.text.y=element_blank(),axis.ticks=element_blank(),
-          axis.title.x=element_blank(),
-          axis.title.y=element_blank(),
-          panel.background=element_blank(),
-        panel.border=element_blank(),
-        panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank(),
-        plot.background=element_blank()) +
-  ggtitle("January Turbinaria Ornata Nitrogen")
-
-ggsave(here("explore_pred_n.jpeg"), dpi = 300, width = 7, height = 4, units = "in")
-
-
-
-```
