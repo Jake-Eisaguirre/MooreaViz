@@ -334,7 +334,7 @@ plot(v_mod_full_bleach)
 bleach_krig <- krige(percent_bleached~1, as(sf_bleached_data, "Spatial"),
                   grd_sp, model = v_mod_bleach)
 
-bleach_raster <- raster(bleach_krig)
+bleach_raster <- raster(bleach_krig) 
 
 ```
 
