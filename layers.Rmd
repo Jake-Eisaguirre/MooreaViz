@@ -23,6 +23,7 @@ library(htmlwidgets)
 library(ggvoronoi)
 library(car)
 library(dismo)
+library(spatstat)
 
 ```
 
@@ -133,7 +134,6 @@ may_krig_p <- krige(percent_n~1, as(sf_may_np_data, "Spatial"),
 #convert kriged data to raster  
 may_ras <- raster(may_krig_p)
 
-plot(may_ras)
 ```
 
 
@@ -175,7 +175,6 @@ july_krig_p <- krige(percent_n~1, as(sf_july_np_data, "Spatial"),
 #convert kriged data to raster  
 july_ras <- raster(july_krig_p)
 
-plot(july_ras)
 ```
 
 # Kriging january nitrogen isotopic data for Moorea lagoon/reef boundary
@@ -215,7 +214,6 @@ jan_krig_i <- krige(percent_n~1, as(sf_jan_ni_data, "Spatial"),
 #convert kriged data to raster  
 jan_ras_i <- raster(jan_krig_i)
 
-plot(jan_ras_i)
 ```
 # Kriging may nitrogen isotopic data for Moorea lagoon/reef boundary
 ```{r}
@@ -254,7 +252,6 @@ may_krig_i <- krige(percent_n~1, as(sf_may_ni_data, "Spatial"),
 #convert kriged data to raster  
 may_ras_i <- raster(may_krig_i)
 
-plot(may_ras_i)
 ```
 
 
@@ -295,7 +292,6 @@ july_krig_i <- krige(percent_n~1, as(sf_july_ni_data, "Spatial"),
 #convert kriged data to raster  
 july_ras_i <- raster(july_krig_i)
 
-plot(july_ras_i)
 ```
 
 
@@ -307,32 +303,38 @@ plot(july_ras_i)
 
 # Percent Bleached
 ```{r}
-# #Select column
-# bleaching_data <- bleach %>% 
-#   dplyr::select(latitude, longitude, percent_bleached) %>% 
-#   na.omit()
-# 
-# #converting bleach data to sf and changing lat long to UTM
-# sf_bleached_data <- st_as_sf(bleaching_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
-#   cbind(st_coordinates(.)) %>% 
-#   mutate(geometry = st_transform(geometry, 
-#                                  "+proj=utm +zone=6 +south +ellps=intl 
-#                                  +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
-#                                  crs = crs))
-# 
-# #vario gram and model selection 
-# bleach_vario <- variogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
-# 
-# plot(bleach_vario)
-# 
-# v_mod_full_bleach <- autofitVariogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
-# 
-# v_mod_bleach <- v_mod_full_bleach$var_model
-# 
-# plot(v_mod_full_bleach)
-# 
-# july_krig_p <- krige(percent_bleached~1, as(sf_bleached_data, "Spatial"), 
-#                   grd_sp, model = "power")
+#Select column
+bleaching_data <- bleach %>%
+  dplyr::select(longitude, latitude, percent_bleached) %>%
+  na.omit() %>% 
+  group_by(longitude, latitude) %>% 
+  summarise(percent_bleached = mean(percent_bleached))
+
+
+#converting bleach data to sf and changing lat long to UTM
+sf_bleached_data <- st_as_sf(bleaching_data, coords = c('longitude', 'latitude'), crs = 4326) %>%
+  cbind(st_coordinates(.)) %>%
+  mutate(geometry = st_transform(geometry,
+                                 "+proj=utm +zone=6 +south +ellps=intl
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs",
+                                 crs = crs))
+
+
+#vario gram and model selection
+bleach_vario <- variogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
+
+plot(bleach_vario)
+
+v_mod_full_bleach <- autofitVariogram(percent_bleached~1, as(sf_bleached_data, "Spatial"))
+
+v_mod_bleach <- v_mod_full_bleach$var_model
+
+plot(v_mod_full_bleach)
+
+bleach_krig <- krige(percent_bleached~1, as(sf_bleached_data, "Spatial"),
+                  grd_sp, model = v_mod_bleach)
+
+bleach_raster <- raster(bleach_krig) 
 
 ```
 
@@ -360,6 +362,9 @@ pal_may_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = m
 july_i_data <- as.data.frame(rasterToPoints(july_ras_i))
 pal_july_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = july_data$var1.pred)
 
+bleach_data <- as.data.frame(rasterToPoints(bleach_raster))
+pal_bleach <- colorNumeric(palette = viridis((25), option = "plasma"), domain = bleach_data$var1.pred)
+
 ```
 
 
@@ -367,7 +372,7 @@ pal_july_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 # leaf for slides
 ```{r}
 
-leaflet() %>% 
+leaf <- leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
   addCircleMarkers(lng = jan_np_data$longitude, lat = jan_np_data$latitude,
                    color = "black", group = "Observations") %>% 
@@ -377,13 +382,15 @@ leaflet() %>%
   addRasterImage(jan_ras_i, colors = "plasma", group = "January N Isotopic", opacity = 0.7) %>% 
   addRasterImage(may_ras_i, colors = "plasma", group = "May N Isotopic", opacity = 0.7) %>% 
   addRasterImage(july_ras_i, colors = "plasma", group = "July N Isotopic", opacity = 0.7) %>%
+  addRasterImage(bleach_raster, colors = "plasma", group = "Percent Bleached", opacity = 0.7) %>% 
   addLayersControl(
     baseGroups = c("January N", 
                    "May N", 
                    "July N", 
                    "January N Isotopic", 
                    "May N Isotopic", 
-                   "July N Isotopic"),
+                   "July N Isotopic",
+                   "Percent Bleached"),
     overlayGroups = c("Observations"),
     options = layersControlOptions(collapsed = FALSE))  %>% 
   addLegend(data = jan_data, title = 'January N', pal = pal_jan,
@@ -416,8 +423,11 @@ leaflet() %>%
             values = ~var1.pred, opacity = 1, group = "May N Isotopic") %>% 
   addLegend(data = may_data, title = 'July N Isotopic', pal = pal_may,
             position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "July N Isotopic")
+            values = ~var1.pred, opacity = 1, group = "July N Isotopic") %>% 
+   addLegend(data = bleach_data, title = 'Percent Bleached', pal = pal_bleach,
+            position = "bottomright", 
+            values = ~var1.pred, opacity = 1, group = "Percent Bleached")
 
-#saveWidget(leaf, file = here("leaf.html"))
+saveWidget(leaf, file = here("leaf.html"))
 ```
 
