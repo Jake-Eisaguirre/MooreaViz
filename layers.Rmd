@@ -295,10 +295,7 @@ july_ras_i <- raster(july_krig_i)
 ```
 
 
-# Jakes Box
-```{r}
 
-```
 
 
 # Percent Bleached
@@ -338,6 +335,9 @@ bleach_raster <- raster(bleach_krig)
 
 ```
 
+```{r}
+
+```
 
 # rasters and palettes 
 ```{r}
