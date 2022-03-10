@@ -335,6 +335,56 @@ bleach_raster <- raster(bleach_krig)
 
 ```
 
+# Kriging Sewage Data  
+```{r}
+# Read in sewage data 
+sewage_data <- read.csv(here("Data/Predicted_nuts.csv")) %>% 
+  clean_names()
+
+# Combine sewage_data columns with n_data 
+sewage_data <- cbind(n_data, sewage_data)
+
+# selecting n-july data
+sewage_2016 <- sewage_data %>% 
+  dplyr::select(longitude, latitude, urb_nuts) %>% 
+  na.omit()
+
+
+#converting july data to sf and changing lat long to UTM
+sf_sewage <- st_as_sf(sewage_2016, coords = c('longitude', 'latitude'), crs = 4326) %>% 
+  cbind(st_coordinates(.)) %>% 
+  mutate(geometry = st_transform(geometry, 
+                                 "+proj=utm +zone=6 +south +ellps=intl 
+                                 +towgs84=162,117,154,0,0,0,0 +units=m +no_defs", 
+                                 crs = crs))
+
+
+#vario gram and model selection 
+sewage_vario <- variogram(urb_nuts~1, as(sf_sewage, "Spatial"))
+
+plot(sewage_vario)
+
+v_mod_full_sewage <- autofitVariogram(urb_nuts~1, as(sf_sewage, "Spatial"))
+
+v_mod_sewage <- v_mod_full_sewage$var_model
+
+plot(v_mod_full_sewage)
+
+
+#krige 
+sewage_krig <- krige(urb_nuts~1, as(sf_sewage, "Spatial"), 
+                  grd_sp, model = v_mod_sewage)
+
+
+#convert kriged data to raster  
+sewage_ras <- raster(sewage_krig)
+
+plot(sewage_ras)
+```
+
+
+
+
 ```{r}
 
 ```
@@ -365,6 +415,9 @@ pal_july_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 bleach_data <- as.data.frame(rasterToPoints(bleach_raster))
 pal_bleach <- colorNumeric(palette = viridis((25), option = "plasma"), domain = bleach_data$var1.pred)
 
+# sewage 
+sewage_data <- as.data.frame(rasterToPoints(sewage_ras_i))
+pal_sewage <- colorNumeric(palette = viridis((25), option = "plasma"), domain = sewage_data$var1.pred)
 ```
 
 
@@ -382,7 +435,8 @@ leaf <- leaflet() %>%
   addRasterImage(jan_ras_i, colors = "plasma", group = "January N Isotopic", opacity = 0.7) %>% 
   addRasterImage(may_ras_i, colors = "plasma", group = "May N Isotopic", opacity = 0.7) %>% 
   addRasterImage(july_ras_i, colors = "plasma", group = "July N Isotopic", opacity = 0.7) %>%
-  addRasterImage(bleach_raster, colors = "plasma", group = "Percent Bleached", opacity = 0.7) %>% 
+  addRasterImage(bleach_raster, colors = "plasma", group = "Percent Bleached", opacity = 0.7) %>%
+  addRasterImage(sewage_ras_i, colors = "plasma", group = "Predicted Sewage", opacity = 0.7) %>%
   addLayersControl(
     baseGroups = c("January N", 
                    "May N", 
@@ -390,7 +444,8 @@ leaf <- leaflet() %>%
                    "January N Isotopic", 
                    "May N Isotopic", 
                    "July N Isotopic",
-                   "Percent Bleached"),
+                   "Percent Bleached", 
+                   "Predicted Sewage"),
     overlayGroups = c("Observations"),
     options = layersControlOptions(collapsed = FALSE))  %>% 
   addLegend(data = jan_data, title = 'January N', pal = pal_jan,
@@ -426,8 +481,11 @@ leaf <- leaflet() %>%
             values = ~var1.pred, opacity = 1, group = "July N Isotopic") %>% 
    addLegend(data = bleach_data, title = 'Percent Bleached', pal = pal_bleach,
             position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "Percent Bleached")
+            values = ~var1.pred, opacity = 1, group = "Percent Bleached") %>% 
+  addLegend(data = sewage_data, title = 'Predicted Sewage', pal = pal_sewage,
+            position = "bottomright",
+            values = ~var1.pred, opacity = 1, group = "Predicted Sewage")
 
-saveWidget(leaf, file = here("leaf.html"))
+#saveWidget(leaf, file = here("leaf.html"))
 ```
 
