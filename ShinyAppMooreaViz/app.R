@@ -32,7 +32,7 @@ library(spatstat)
 
 # Load Data ----
 
-#nitrogren data
+#nitrogen data
 nitrogen_data <- read_csv(here("data", "csv", "N_summary_2016.csv")) %>% 
     clean_names()
 
@@ -53,21 +53,31 @@ sewage_data <- cbind(nitrogen_data, sewage_data)
 # User Interface ----
 # Creates the structure for your app's look and appearance 
 # Define UI for application that draws a histogram
+
 ui <- fluidPage(
 
     # Application title
     titlePanel("Moorea Coral Reef LTER"),
+    sidebarLayout(
+        sidebarPanel(width = 0),
+        mainPanel(img(src = "mcr_logo.png", height = 60, width = 150, align = "right"), 
+                  img(src = "lter_logo.png", height = 60, width = 70, align = "right"), 
+                  img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
 
-    navbarPage("App Title",
+    navbarPage("App Title", 
                tabPanel("Home"),
                navbarMenu("Spatial",
                           tabPanel(title = "Map", 
-                                   shinyWidgets::pickerInput(inputId = "Year",
-                                                                             label = "Select a Year:",
-                                                                             choices = c("2016", 
-                                                                                         "2017", 
-                                                                                         "2018"),
-                                                                             multiple = FALSE),
+                                   
+                                   #----
+                                   #leaftlet map inputs
+                                   
+                                   pickerInput(inputId = "Year",
+                                               label = "Select a Year:",
+                                               choices = c("2016",
+                                                           "2017",
+                                                           "2018"),
+                                                multiple = FALSE),
                                    shinyWidgets::pickerInput(inputId = "Month",
                                                              label = "Select a Month:",
                                                              choices = c("January", 
@@ -85,9 +95,15 @@ ui <- fluidPage(
                                                              label = "Select an Add on:",
                                                              choices = c("LTER Sites", 
                                                                          "Observations"),
-                                                             multiple = TRUE)
-                                
-                                   ),
+                                                             multiple = TRUE),
+                                   
+                                   #---- 
+                                   #leaflet map outputs
+                                   
+                                   leafletOutput(outputId = "leaflet_layers")),
+                          
+                        
+                          
                           tabPanel("Metadata")), 
                navbarMenu("Temporal",
                           tabPanel("Figures"),
@@ -104,7 +120,10 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-  
+    output$leaflet_layers <- renderLeaflet({
+        leaflet() %>%
+            
+    })
 }
 
 # Run the application 
