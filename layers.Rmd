@@ -387,12 +387,43 @@ sewage_ras <- raster(sewage_krig)
 
 
 
-# lidar
+# Lidar 
 ```{r}
 # lidar layer 
-lidar <- read_csv(here("data/bathy_LIDAR.xyz")) %>% 
-  unnest()
+bathy <- read.table(here("data/bathy_LIDAR.xyz")) %>% 
+  as.data.frame()
 
+bathy <- rename(bathy, longitude = V1)
+bathy <- rename(bathy, latitude = V2) 
+bathy <- rename(bathy, depth = V3) # threw an error when trying to do all the rename steps in one go 
+
+# create a matrix from columns X & Y and use project 
+library(rgdal)
+
+bathy_utm_coord <- project(as.matrix(bathy[,c("longitude","latitude")]), "+proj=utm +zone=6 +south +ellps=intl +towgs84=162,117,154,0,0,0,0 +units=m +no_defs") %>% 
+  as.data.frame() %>% 
+  rename(long = longitude,
+         lat = latitude)
+
+bathy_bind <- cbind(bathy, bathy_utm_coord) %>% 
+  dplyr::select(-c("longitude", "latitude")) 
+  
+bathy_bind <- bathy_bind[, c("long", "lat", "depth")] 
+
+# filter out the negative depths and convert to sf
+bathy_sf_filtered <- st_as_sf(bathy_bind, coords = c("long","lat")) %>% 
+  filter(depth >= 0)
+
+#### Generate a raster layer and rasterize the points to it.
+
+# Convert points to sp
+bathy_points_filtered <- as(bathy_sf_filtered, "Spatial") 
+
+# Generate empty raster layer and rasterize points
+bathy_raster_filtered <- raster(crs = crs(bathy_sf_filtered), vals = 0, resolution = c(20, 20), ext = extent(bathy_sf_filtered)) %>% 
+  rasterize(bathy_points_filtered, ., field = bathy_points_filtered$depth)
+
+plot(bathy_raster_filtered)
 ```
 
 # boxes
@@ -430,6 +461,10 @@ pal_bleach <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 # sewage 
 sew_dat <- as.data.frame(rasterToPoints(sewage_ras))
 pal_sewage <- colorNumeric(palette = viridis((25), option = "plasma"), domain = sewage_data$var1.pred, reverse = TRUE)
+
+# lidar 
+bathy_df <- as.data.frame(rasterToPoints(bathy_raster_filtered))
+pal_bathy <- colorNumeric(palette = viridis((25), option = "plasma"), domain = bathy_df$layer, reverse = TRUE)
 ```
 
 
