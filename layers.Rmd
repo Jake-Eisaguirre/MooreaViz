@@ -389,6 +389,9 @@ sewage_ras <- raster(sewage_krig)
 
 
 ```{r}
+# lidar layer 
+lidar <- read_csv(here("data/bathy_LIDAR.xyz")) %>% 
+  unnest()
 
 ```
 
