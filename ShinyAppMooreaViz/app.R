@@ -70,7 +70,7 @@ ui <- fluidPage(
                           tabPanel(title = "Map", 
                                    
                                    #----
-                                   #leaftlet map inputs
+                                   #leaflet map inputs
                                    
                                    pickerInput(inputId = "Year",
                                                label = "Select a Year:",
@@ -121,7 +121,7 @@ ui <- fluidPage(
 server <- function(input, output) {
 
     output$leaflet_layers <- renderLeaflet({
-        leaflet() %>%
+        leaflet()
             
     })
 }
