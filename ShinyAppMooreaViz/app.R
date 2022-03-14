@@ -9,13 +9,45 @@
 
 # Load Packages ----
 library(shiny)
-library()
+library(leaflet)
+library(tidyverse)
+library(shinyWidgets)
 
+### not sure if we need all of these, they are from the layers.Rmd
+library(here)
+library(janitor)
+library(raster)
+library(viridis)
+library(sf)
+library(gstat)
+library(sp)
+library(automap)
+library(testthat)
+library(htmlwidgets)
+library(ggvoronoi)
+library(car)
+library(dismo)
+library(spatstat)
 
 
 # Load Data ----
 
-#add this comment
+#nitrogren data
+nitrogen_data <- read_csv(here("data", "csv", "N_summary_2016.csv")) %>% 
+    clean_names()
+
+#bleaching data
+bleach <- read_csv(here("data", "csv", "percent_bleach_2016.csv")) %>% 
+    clean_names()
+
+#10x10 grid for kriging
+grd_sp <- readRDS(here("data", "krig_grid", "grd_sp"))
+
+#sewage data
+sewage_data <- read.csv(here("Data/Predicted_nuts.csv")) %>% 
+    clean_names()
+
+sewage_data <- cbind(nitrogen_data, sewage_data)
 
 
 # User Interface ----
@@ -26,13 +58,44 @@ ui <- fluidPage(
     # Application title
     titlePanel("Moorea Coral Reef LTER"),
 
-     
-    
-
-    
-       
-    
+    navbarPage("App Title",
+               tabPanel("Home"),
+               navbarMenu("Spatial",
+                          tabPanel(title = "Map", 
+                                   shinyWidgets::pickerInput(inputId = "Year",
+                                                                             label = "Select a Year:",
+                                                                             choices = c("2016", 
+                                                                                         "2017", 
+                                                                                         "2018"),
+                                                                             multiple = FALSE),
+                                   shinyWidgets::pickerInput(inputId = "Month",
+                                                             label = "Select a Month:",
+                                                             choices = c("January", 
+                                                                         "July", 
+                                                                         "May"),
+                                                             multiple = FALSE), 
+                                   shinyWidgets::pickerInput(inputId = "Variable",
+                                                             label = "Select a Variable:",
+                                                             choices = c("Nitrogen", 
+                                                                         "Isotopic Nitrogen", 
+                                                                         "Coral Bleaching", 
+                                                                         "Predicted Sewage"),
+                                                             multiple = FALSE), 
+                                   shinyWidgets::pickerInput(inputId = "Other",
+                                                             label = "Select an Add on:",
+                                                             choices = c("LTER Sites", 
+                                                                         "Observations"),
+                                                             multiple = TRUE)
+                                
+                                   ),
+                          tabPanel("Metadata")), 
+               navbarMenu("Temporal",
+                          tabPanel("Figures"),
+                          tabPanel("Metadata")), 
+               tabPanel("Data")
+    )
 )
+
 
 
 
@@ -41,14 +104,7 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
-    })
+  
 }
 
 # Run the application 
