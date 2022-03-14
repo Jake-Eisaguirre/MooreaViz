@@ -54,6 +54,9 @@ crs <- 2976
 ```{r}
 #nitrogen data
 n_data <- nitrogen_data %>% 
+  mutate(percent_n_jan = percent_n_jan *100,
+         percent_n_may = percent_n_may *100,
+         percent_n_july = percent_n_july *100) %>% 
   pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
   separate(type, into = c("method","random", "date"), sep = "_") %>% 
   dplyr::select(-random)
@@ -425,10 +428,20 @@ pal_sewage <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 # leaf for slides
 ```{r}
 
-leaf <- leaflet() %>% 
+leaflet() %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
-  addCircleMarkers(lng = jan_np_data$longitude, lat = jan_np_data$latitude,
-                   color = "black", group = "Observations") %>% 
+  addCircleMarkers(lng = n_data$longitude, lat = n_data$latitude,
+                   color = "black", group = "Observations", radius = 1, 
+                   popup = paste("Longitude", n_data$longitude, "<br>",
+                           "Latitude:", n_data$latitude, "<br>",
+                           "Percent N Jan:", jan_np_data$percent_n, "<br>",
+                           "Percent N May:", may_np_data$percent_n, "<br>",
+                           "Percent N July:", july_np_data$percent_n, "<br>",
+                           "Isotopic N Jan:", jan_ni_data$percent_n, "<br>",
+                           "Isotopic N May:", may_ni_data$percent_n, "<br>",
+                           "Isotopic N July:", july_ni_data$percent_n, "<br>",
+                           "Percet Bleached:", bleaching_data$percent_bleached, "<br>",
+                           "Predicted Sewage:", sewage_2016$urb_nuts, "<br>")) %>% 
   addRasterImage(jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
   addRasterImage(may_ras, colors = "plasma", group = "May N", opacity = 0.7) %>% 
   addRasterImage(july_ras, colors = "plasma", group = "July N", opacity = 0.7) %>% 
