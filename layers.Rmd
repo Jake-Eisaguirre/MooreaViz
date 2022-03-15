@@ -507,7 +507,7 @@ pal_bathy <- colorNumeric(palette = viridis((25), option = "plasma"), domain = b
 # leaf for slides
 ```{r}
 
-leaflet(crs) %>% 
+leaf <- leaflet(crs) %>% 
   addProviderTiles("Esri.WorldImagery") %>% 
   addCircleMarkers(lng = n_data$longitude, lat = n_data$latitude,
                    color = "black", group = "Observations", radius = 1, 
@@ -603,6 +603,6 @@ leaflet(crs) %>%
             position = "bottomright",
             values = ~layer, opacity = 1, group = 'Depth')
 
-#saveWidget(leaf, file = here("leaf.html"))
+saveWidget(leaf, file = here("leaf.html"))
 ```
 
