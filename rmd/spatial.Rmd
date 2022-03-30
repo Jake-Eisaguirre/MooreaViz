@@ -616,6 +616,6 @@ leaf <- leaflet(crs) %>%
             position = "bottomright",
             values = ~layer, opacity = 1, group = 'Depth')
 
-saveWidget(leaf, file = here("leaf.html"))
+saveWidget(leaf, file = here("figs", "leaf.html"))
 ```
 
