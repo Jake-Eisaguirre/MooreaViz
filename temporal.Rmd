@@ -1,0 +1,40 @@
+---
+title: "temporal"
+author: "Jake Eisaguirre"
+date: "3/30/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# libraries
+```{r}
+
+#
+
+```
+
+# data read in
+```{r}
+
+#
+
+```
+
+# COT
+```{r}
+
+```
+
+# percent coral cover
+```{r}
+
+```
+
+# herbivore biomass
+```{r}
+
+```
+

@@ -42,14 +42,14 @@ bleach <- read_csv(here("data", "csv", "percent_bleach_2016.csv")) %>%
 grd_sp <- readRDS(here("data", "krig_grid", "grd_sp"))
 
 #sewage data
-sewage_data <- read.csv(here("Data/Predicted_nuts.csv")) %>% 
+sewage_data <- read.csv(here("data/csv/Predicted_nuts.csv")) %>% 
   clean_names()
 
 sewage_data <- cbind(nitrogen_data, sewage_data)
 
 
 # lidar data 
-bathy <- read.table(here("data/bathy_LIDAR.xyz")) %>% 
+bathy <- read.table(here("data/csv/bathy_LIDAR.xyz")) %>% 
   as.data.frame()
 
 bathy <- rename(bathy, longitude = V1)
