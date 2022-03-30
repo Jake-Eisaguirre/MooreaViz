@@ -17,7 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # libraries -J
 ```{r}
-
+library(here)
+library(tidyverse)
+library(janitor)
 ```
 
 
@@ -26,13 +28,66 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-# percent coral cover
+# percent coral cover - Double check coral species list
 ```{r}
+
+coral_cover_raw <- read_csv(here("data", "csv", "percent_coral_cover.csv")) %>%
+  clean_names()
+
+coral_cover <- coral_cover_raw %>%
+  as.data.frame() %>% 
+  select(date, site, taxonomy_substrate_or_functional_group, percent_cover) %>% 
+  filter(!str_detect(percent_cover, "ND")) %>% 
+  filter(!str_detect(percent_cover, "0.0")) %>% 
+  filter(!taxonomy_substrate_or_functional_group %in% 
+           c("Sand", "Non-coralline Crustose Algae", "Unknown or Other",
+             "CTB", "Macroalgae")) %>% 
+  mutate(date = str_sub(date, 1, -4)) %>% 
+  mutate(date = as.numeric(date),
+         percent_cover = as.numeric(percent_cover))
+
+sum_coral_cover <- coral_cover %>% 
+  group_by(site, date) %>% 
+  summarize(mean_coral_cover = (mean(percent_cover) * 4))
+  
+  
+ggplot(sum_coral_cover) +
+  geom_line(aes(x = date, y = mean_coral_cover, group = site, color = site)) +
+  xlab("Year") +
+  ylab(expression(paste("Average Percent Coral Cover per 0.25 ", m^{2}))) +
+  theme_classic()
+  
+
+
 
 ```
 
 # herbivore biomass
 ```{r}
+
+```
+
+# percent algae
+```{r}
+algae_cover_raw <- read_csv(here("data", "csv", "percent_algae_cover.csv")) %>%
+  clean_names()
+
+algae_cover <- algae_cover_raw %>% 
+  select(year, site, taxonomy_substrate_functional_group, percent_cover) %>% 
+  filter(!taxonomy_substrate_functional_group %in% 
+           c("Sand", "Coral", "Bare Space", "Millepora platyphylla", "Soft Coral",
+             "No data", "NA", "Sponge", "Shell Debris", "Coral Rubble")) %>% 
+  filter(!str_detect(percent_cover, "0"))
+
+sum_algae_cover <- algae_cover %>% 
+  group_by(year, site) %>% 
+  summarize(mean_algae_cover = mean(percent_cover))
+
+ggplot(sum_algae_cover) +
+  geom_line(aes(x = year, y = mean_algae_cover, group = site, color = site)) +
+  xlab("Year") +
+  ylab(expression(paste("Average Percent Algae Cover per 0.25 ", m^{2}))) +
+  theme_classic()
 
 ```
 
