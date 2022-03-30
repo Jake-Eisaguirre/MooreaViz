@@ -5,7 +5,7 @@ date: "1/18/2022"
 output: html_document
 ---
 
-This is the code for the Spatial Tab on the Moorea Shiny App. Each chuck has a sentence above it that explains what that chuck does. There are also commented out explainatains next to the code, within the chunks.  
+This is the code for the Spatial Tab on the Moorea Shiny App. Each chuck has a sentence above it that explains what that chuck does. There are also commented out explanations next to the code, within the chunks.  
 
 # Load Packages 
 ```{r setup, include=FALSE}
