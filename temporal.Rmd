@@ -9,19 +9,17 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# libraries
+# libraries - F
 ```{r}
 
-#
 
 ```
 
-# data read in
+# libraries -J
 ```{r}
 
-#
-
 ```
+
 
 # COT
 ```{r}
