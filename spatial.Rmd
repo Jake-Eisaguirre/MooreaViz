@@ -1,10 +1,13 @@
 ---
-title: "mooreaviz"
-author: "Jake Eisaguirre"
+title: "Spatial"
+author: "Allie Cole, Felicia Cruz, Charles Hendrickson, Jake Eisaguirre"
 date: "1/18/2022"
 output: html_document
 ---
 
+This is the code for the Spatial Tab on the Moorea Shiny App. Each chuck has a sentence above it that explains what that chuck does. There are also commented out explainatains next to the code, within the chunks.  
+
+# Load Packages 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(here)
@@ -28,7 +31,8 @@ library(rgdal)
 
 ```
 
-# read in data
+# Read in Data
+This code chunk loads all of the data we will be using
 ```{r}
 #nitrogren data
 nitrogen_data <- read_csv(here("data", "csv", "N_summary_2016.csv")) %>% 
@@ -56,17 +60,19 @@ bathy <- rename(bathy, longitude = V1)
 bathy <- rename(bathy, latitude = V2) 
 bathy <- rename(bathy, depth = V3)
 
-#moorea crs EPSG:2976
+#moorea crs EPSG:2976 
+#this is setting the Coordinate Reference System (crs) as a variable so we can use it later 
 crs <- 2976
 ```
 
-# Tidy format data
+# Tidy the Nitrogen Data
+Here we are turning the nitrogen data into standard Tidy format
 ```{r}
 #nitrogen data
 n_data <- nitrogen_data %>% 
   mutate(percent_n_jan = percent_n_jan *100,
          percent_n_may = percent_n_may *100,
-         percent_n_july = percent_n_july *100) %>% 
+         percent_n_july = percent_n_july *100) %>% #turning them into %s 
   pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
   separate(type, into = c("method","random", "date"), sep = "_") %>% 
   dplyr::select(-random)
@@ -74,11 +80,12 @@ n_data <- nitrogen_data %>%
 
 ```
 
+# Now we krige each month, for the nitrogen percent data
 
-
-# Kriging january nitrogen data for Moorea lagoon/reef boundary
+## Kriging january nitrogen data for Moorea lagoon/reef boundary
 ```{r}
 # selecting n-jan data
+## jan_np_data -> January Nitrogen percent data
 jan_np_data <- n_data %>% 
   filter(date == "jan", method == "percent") %>%
   dplyr::select(longitude, latitude, percent_n) %>% 
@@ -86,6 +93,7 @@ jan_np_data <- n_data %>%
 
 
 #converting jan data to sf and changing lat long to UTM
+## sf_jan_np_data -> Simple Feature January Nitrogen percent data
 sf_jan_np_data <- st_as_sf(jan_np_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
   cbind(st_coordinates(.)) %>% 
   mutate(geometry = st_transform(geometry, 
@@ -117,7 +125,7 @@ jan_ras <- raster(jan_krig_p)
 ```
 
 
-# Kriging may nitrogen data for Moorea lagoon/reef boundary
+## Kriging may nitrogen data for Moorea lagoon/reef boundary
 ```{r}
 # selecting n-may data
 may_np_data <- n_data %>% 
@@ -157,8 +165,7 @@ may_ras <- raster(may_krig_p)
 ```
 
 
-# Kriging July nitrogen data for Moorea lagoon/reef boundary
-
+## Kriging July nitrogen data for Moorea lagoon/reef boundary
 ```{r}
 # selecting n-july data
 july_np_data <- n_data %>% 
@@ -197,9 +204,13 @@ july_ras <- raster(july_krig_p)
 
 ```
 
-# Kriging january nitrogen isotopic data for Moorea lagoon/reef boundary
+
+# Kriging for each month using isotopic nitrogen data
+
+## Kriging january nitrogen isotopic data for Moorea lagoon/reef boundary
 ```{r}
 # selecting n-jan data
+## jan_ni_data -> January Nitrogen Isotopic data
 jan_ni_data <- n_data %>% 
   filter(date == "jan", method == "d15n") %>%
   dplyr::select(longitude, latitude, percent_n) %>% 
@@ -207,6 +218,7 @@ jan_ni_data <- n_data %>%
 
 
 #converting jan data to sf and changing lat long to UTM
+## jan_ni_data -> Simple Feature January Nitrogen Isotopic data
 sf_jan_ni_data <- st_as_sf(jan_ni_data, coords = c('longitude', 'latitude'), crs = 4326) %>% 
   cbind(st_coordinates(.)) %>% 
   mutate(geometry = st_transform(geometry, 
@@ -235,7 +247,8 @@ jan_krig_i <- krige(percent_n~1, as(sf_jan_ni_data, "Spatial"),
 jan_ras_i <- raster(jan_krig_i)
 
 ```
-# Kriging may nitrogen isotopic data for Moorea lagoon/reef boundary
+
+## Kriging may nitrogen isotopic data for Moorea lagoon/reef boundary
 ```{r}
 # selecting n-may data
 may_ni_data <- n_data %>% 
@@ -275,7 +288,7 @@ may_ras_i <- raster(may_krig_i)
 ```
 
 
-# Kriging july nitrogen isotopic data for Moorea lagoon/reef boundary
+## Kriging july nitrogen isotopic data for Moorea lagoon/reef boundary
 ```{r}
 # selecting n-july data
 july_ni_data <- n_data %>% 
@@ -314,11 +327,7 @@ july_ras_i <- raster(july_krig_i)
 
 ```
 
-
-
-
-
-# Percent Bleached
+#Krige the Percent Bleached
 ```{r}
 #Select column
 bleaching_data <- bleach %>%
@@ -348,6 +357,7 @@ v_mod_bleach <- v_mod_full_bleach$var_model
 
 plot(v_mod_full_bleach)
 
+#krige the bleached layer
 bleach_krig <- krige(percent_bleached~1, as(sf_bleached_data, "Spatial"),
                   grd_sp, model = v_mod_bleach)
 
@@ -396,8 +406,8 @@ sewage_ras <- raster(sewage_krig)
 ```
 
 
-
-# Lidar 
+# Lidar Bathymetery
+We did not krige this layer, but we did turn it into a raster
 ```{r}
 # create a matrix from columns X & Y and use project 
 bathy_utm_coord <- project(as.matrix(bathy[,c("longitude","latitude")]), "+proj=utm +zone=6 +south +ellps=intl +towgs84=162,117,154,0,0,0,0 +units=m +no_defs") %>% 
@@ -426,7 +436,8 @@ bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext =
 
 ```
 
-# boxes
+# Creating the LTER site bounding boxes
+In this code chuck we are creating a bounding box for each LTER site and turning them into data frames so we can graph them later on
 ```{r}
 
 latitude <- c(-17.47185366, -17.47185366, -17.48641792, -17.48641792, -17.47185366)
@@ -467,7 +478,8 @@ lter_6 <- data.frame(longitude, latitude)
 ```
 
 
-# rasters and palettes 
+# Rasters and Palettes 
+This code chunk creates all of the palettes for the leaflet and allows us to plot the raster on our map by turning them into points and a data frame
 ```{r}
 # percent nitrogen 
 jan_data <- as.data.frame(rasterToPoints(jan_ras))
@@ -504,7 +516,8 @@ pal_bathy <- colorNumeric(palette = viridis((25), option = "plasma"), domain = b
 
 
 
-# leaf for slides
+# leaflet map 
+This is the code for our leaflet map 
 ```{r}
 
 leaf <- leaflet(crs) %>% 
