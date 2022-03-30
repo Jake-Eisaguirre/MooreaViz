@@ -59,7 +59,7 @@ ui <- fluidPage(
     # Application title
     titlePanel("Moorea Coral Reef LTER"),
     sidebarLayout(
-        sidebarPanel(width = 0),
+        sidebarPanel(),
         mainPanel(img(src = "mcr_logo.png", height = 60, width = 150, align = "right"), 
                   img(src = "lter_logo.png", height = 60, width = 70, align = "right"), 
                   img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
