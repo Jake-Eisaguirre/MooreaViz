@@ -1,6 +1,6 @@
 ---
 title: "temporal"
-author: "Jake Eisaguirre"
+author: "Allie Cole, Felicia Cruz, Charles Hendrickson, Jake Eisaguirre"
 date: "3/30/2022"
 output: html_document
 ---
