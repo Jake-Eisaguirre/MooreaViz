@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# libraries - F
+# libraries 
 ```{r}
 library(tidyverse)
 library(ggplot2)
@@ -21,31 +21,26 @@ library(plotly)
  
 ```
 
-# libraries -J
-```{r}
-library(here)
-library(tidyverse)
-library(janitor)
-```
-
 
 # COT
 ```{r}
 # read in data
-cots <- read_csv(here(“data/csv/COT_abundance.csv”)) %>%
+cots <- read_csv(here("data/csv/COT_abundance.csv")) %>%
   clean_names()
+
 cots$year <- as.factor(cots$year)
 # summary df
 cots_summary <- cots %>%
   group_by(site, year) %>%
   summarize(total = sum(cots))
+
 cots_counts <- ggplot(data = cots_summary, aes(x = as.factor(year), y = total, fill = site)) +
-  geom_col(position = “stack”) +
-  labs(title = “Crown of Thorns Sea Stars”,
-       subtitle = “Moorea, French Polynesia (2005-2018)“,
-       fill = “Site”,
-       x = “Year”,
-       y = “Total”) +
+  geom_col(position = "stack") +
+  labs(title = "Crown of Thorns Sea Stars",
+       subtitle = "Moorea, French Polynesia (2005-2018)",
+       fill = "Site",
+       x = "Year",
+       y = "Total") +
   scale_y_continuous(breaks = seq(0, 150, by = 25)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
@@ -54,17 +49,17 @@ cots_counts <- ggplot(data = cots_summary, aes(x = as.factor(year), y = total, f
         axis.title.y = element_text(size = 14),
         plot.title = element_text(size = 16)) +
   #scale_fill_brewer(palette = “Set2") +
-  scale_fill_manual(values = c(“#40B5AD”, “#87CEEB”, “#4682B4”, “#6F8FAF”, “#9FE2BF”, “#6495ED”)) +
+  scale_fill_manual(values = c("#40B5AD", "#87CEEB", "#4682B4", "#6F8FAF", "#9FE2BF", "#6495ED")) +
   geom_text(
     aes(label = stat(y), group = year),
-    stat = ‘summary’, fun = sum, vjust = -1, nudge_y = 2)
+    stat = "summary", fun = sum, vjust = -1, nudge_y = 2)
 ggplotly(cots_counts,
-         tooltip = c(“total”, “site”))  %>%
-  layout(title = list(text = paste0(‘Crown of Thorns Sea Stars’,
-                                    ‘<br>‘,
-                                    ‘<sup>’,
-                                    ‘Moorea, French Polynesia (2005-2018)‘,
-                                    ‘</sup>’)))
+         tooltip = c("total", "site"))  %>%
+  layout(title = list(text = paste0("Crown of Thorns Sea Stars",
+                                    "<br>",
+                                    "<sup>",
+                                    "Moorea, French Polynesia (2005-2018)",
+                                    "</sup>")))
 # DENSITY PLOT
 # densities by site
 # group by site & year , sum total observations / 1000 -> annual site density
@@ -72,18 +67,19 @@ ggplotly(cots_counts,
 cots_density <-  cots %>%
   group_by(site, year) %>%
   summarize(density = (sum(cots)/1000)) # this should give annual site density/ m^2
+
 # density plot
 ggplot(data = cots_density, aes(x = year, y = density)) +
   geom_point(aes(color = site)) +
   geom_line(aes(group = site, color = site)) +
   facet_wrap(~site) +
-  labs(title = “Crown of Thorns Sea Stars - Annual Site Densities”,
-       subtitle = “Moorea, French Polynesia (2005 - 2018)“,
-       y = “Density (count/m^2)“,
-       x = “Year”,
-       color = “Site”) +
+  labs(title = 'Crown of Thorns Sea Stars - Annual Site Densities',
+       subtitle = 'Moorea, French Polynesia (2005 - 2018)',
+       y = 'Density (count/m^2)',
+       x = 'Year',
+       color = 'Site') +
   #scale_x_discrete(labels = c(“”, 2006, “”, 2008, “”, 2010, “”, 2012, “”, 2014, “”, 2016, “”, 2018)) +
-  scale_color_manual(values = c(“#40B5AD”, “#87CEEB”, “#4682B4", “#6F8FAF”, “#9FE2BF”, “#6495ED”)) +
+  scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
         panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
@@ -130,7 +126,7 @@ ggplot(sum_coral_cover) +
 # herbivore biomass
 ```{r}
 # read in data and clean
-fish_biomass <- read_csv(here(“data/csv/fish.csv”)) %>%
+fish_biomass <- read_csv(here("data/csv/fish.csv")) %>%
   clean_names()
 
 fish_biomass$site <- as.factor(fish_biomass$site)
@@ -141,10 +137,11 @@ fish_biomass$substring_location =
   substr(fish_biomass$location,1,6)
 # Create ‘year’, ‘site’, and ‘biomass’ column
 biomass_summary <- fish_biomass %>%
-  filter(coarse_trophic == “Primary Consumer”) %>%
-  select(year, ‘site’ = substring_location, biomass) %>%
+  filter(coarse_trophic == "Primary Consumer") %>%
+  select(year, "site" = substring_location, biomass) %>%
   group_by(year, site) %>%
   summarize(mean = mean(biomass))
+
 ggplot(data = biomass_summary, aes(x = year, y = mean)) +
   geom_point(aes(color = site)) +
   geom_line(aes(group = site, color = site))
