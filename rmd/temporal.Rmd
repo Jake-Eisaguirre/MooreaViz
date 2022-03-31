@@ -132,9 +132,11 @@ ggplot(sum_coral_cover) +
 # read in data and clean
 fish_biomass <- read_csv(here(“data/csv/fish.csv”)) %>%
   clean_names()
+
 fish_biomass$site <- as.factor(fish_biomass$site)
 # We only want “LTER #”
 # Below I used substr() function to find first n characters of the column in R. substr() function takes column name, starting position and length of the strings as argument, which will return the substring of the specific column as shown below.
+
 fish_biomass$substring_location =
   substr(fish_biomass$location,1,6)
 # Create ‘year’, ‘site’, and ‘biomass’ column
