@@ -28,13 +28,14 @@ library(plotly)
 cots <- read_csv(here("data/csv/COT_abundance.csv")) %>%
   clean_names()
 
-cots$year <- as.factor(cots$year)
+# cots$year <- as.factor(cots$year)
 # summary df
 cots_summary <- cots %>%
+  mutate(year = as.numeric(year)) %>% 
   group_by(site, year) %>%
-  summarize(total = sum(cots))
+  summarize(cot_raw_count = sum(cots))
 
-cots_counts <- ggplot(data = cots_summary, aes(x = as.factor(year), y = total, fill = site)) +
+cots_counts <- ggplot(data = cots_summary, aes(x = as.factor(year), y = cot_raw_count, fill = site)) +
   geom_col(position = "stack") +
   labs(title = "Crown of Thorns Sea Stars",
        subtitle = "Moorea, French Polynesia (2005-2018)",
@@ -107,13 +108,14 @@ coral_cover <- coral_cover_raw %>%
   mutate(date = as.numeric(date),
          percent_cover = as.numeric(percent_cover))
 
-sum_coral_cover <- coral_cover %>% 
-  group_by(site, date) %>% 
+sum_coral_cover <- coral_cover %>%
+  mutate(year = date) %>% 
+  group_by(site, year) %>% 
   summarize(mean_coral_cover = (mean(percent_cover) * 4))
   
   
 ggplot(sum_coral_cover) +
-  geom_line(aes(x = date, y = mean_coral_cover, group = site, color = site)) +
+  geom_line(aes(x = year, y = mean_coral_cover, group = site, color = site)) +
   xlab("Year") +
   ylab(expression(paste("Average Percent Coral Cover per 0.25 ", m^{2}))) +
   theme_classic()
@@ -139,10 +141,11 @@ fish_biomass$substring_location =
 biomass_summary <- fish_biomass %>%
   filter(coarse_trophic == "Primary Consumer") %>%
   select(year, "site" = substring_location, biomass) %>%
+  mutate(year = as.numeric(year)) %>% 
   group_by(year, site) %>%
-  summarize(mean = mean(biomass))
+  summarize(mean_biomass_p_consumers = mean(biomass))
 
-ggplot(data = biomass_summary, aes(x = year, y = mean)) +
+ggplot(data = biomass_summary, aes(x = year, y = mean_biomass_p_consumers)) +
   geom_point(aes(color = site)) +
   geom_line(aes(group = site, color = site))
 ```
@@ -160,6 +163,7 @@ algae_cover <- algae_cover_raw %>%
   filter(!str_detect(percent_cover, "0"))
 
 sum_algae_cover <- algae_cover %>% 
+  mutate(year = as.numeric(year)) %>% 
   group_by(year, site) %>% 
   summarize(mean_algae_cover = mean(percent_cover))
 
@@ -169,6 +173,14 @@ ggplot(sum_algae_cover) +
   ylab(expression(paste("Average Percent Algae Cover per 0.25 ", m^{2}))) +
   theme_classic()
 
+```
+# join data sets on site, and year
+```{r}
+
+algae_coral <- left_join(sum_coral_cover, sum_algae_cover, on = c(year, site))
+ag_c <- left_join(algae_coral, cots_summary, on = c(year,site))
+
+temporal_data <- left_join(ag_c, biomass_summary, on = c(year,site))
 ```
 
 
