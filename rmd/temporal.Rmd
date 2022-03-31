@@ -11,8 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # libraries - F
 ```{r}
-
-
+library(tidyverse)
+library(ggplot2)
+library(here)
+library(janitor)
+library(lubridate)
+library(stringr)
+library(plotly)
 ```
 
 # libraries -J
