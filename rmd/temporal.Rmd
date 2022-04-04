@@ -93,10 +93,6 @@ ggplot(sum_coral_cover) +
   xlab("Year") +
   ylab(expression(paste("Average Percent Coral Cover per 0.25 ", m^{2}))) +
   theme_classic()
-  
-
-
-
 ```
 
 # herbivore biomass
@@ -154,7 +150,33 @@ ggplot(sum_algae_cover) +
 algae_coral <- left_join(sum_coral_cover, sum_algae_cover, on = c(year, site))
 ag_c <- left_join(algae_coral, cots_summary, on = c(year,site))
 
-temporal_data <- left_join(ag_c, biomass_summary, on = c(year,site))
+temporal_data <- left_join(ag_c, biomass_summary, on = c(year,site)) %>% 
+  mutate(cots_density = cot_raw_count/1000) # include both density and raw counts 
+
+# make new csv to easily source in the shiny app 
+write.csv(temporal_data, here("data/csv/temporal_data_joined.csv")) 
 ```
 
+using the joined df to make a faceted plot based on variable choice 
+```{r}
+ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site)) +
+  facet_wrap(~site) +
+  labs(title = 'Crown of Thorns Sea Stars - Annual Site Densities',
+       subtitle = 'Moorea, French Polynesia (2005 - 2018)',
+       y = 'Density (count/m^2)',
+       x = 'Year',
+       color = 'Site') +
+  #scale_x_discrete(labels = c(“”, 2006, “”, 2008, “”, 2010, “”, 2012, “”, 2014, “”, 2016, “”, 2018)) +
+  scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.title.x = element_text(size=14),
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 16))
+
+```
 
