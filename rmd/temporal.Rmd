@@ -157,8 +157,9 @@ temporal_data <- left_join(ag_c, biomass_summary, on = c(year,site)) %>%
 write.csv(temporal_data, here("data/csv/temporal_data_joined.csv")) 
 ```
 
-using the joined df to make a faceted plot based on variable choice 
+using the joined df to make a faceted plot based on variable choice (4 plots to be included on app)
 ```{r}
+# cots 
 ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
   geom_point(aes(color = site)) +
   geom_line(aes(group = site, color = site)) +
@@ -168,7 +169,6 @@ ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
        y = 'Density (count/m^2)',
        x = 'Year',
        color = 'Site') +
-  #scale_x_discrete(labels = c(“”, 2006, “”, 2008, “”, 2010, “”, 2012, “”, 2014, “”, 2016, “”, 2018)) +
   scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
@@ -178,5 +178,80 @@ ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
         axis.title.y = element_text(size = 14),
         plot.title = element_text(size = 16))
 
+
+# mean coral cover 
+ggplot(data = temporal_data, aes(x = year, y = mean_coral_cover)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site)) +
+  facet_wrap(~site) +
+  labs(title = 'Mean Coral Cover',
+       subtitle = 'Moorea, French Polynesia (2005 - 2021)',
+       y = expression(paste("Average Percent Coral Cover per 0.25 ", m^{2})),
+       x = 'Year',
+       color = 'Site') +
+  scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.title.x = element_text(size=14),
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 16))
+
+# mean algae cover 
+ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site)) +
+  facet_wrap(~site) +
+  labs(title = 'Mean Algae Cover',
+       subtitle = 'Moorea, French Polynesia (2005 - 2021)',
+       y = expression(paste("Average Percent Algae Cover per 0.25 ", m^{2})),
+       x = 'Year',
+       color = 'Site') +
+  scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.title.x = element_text(size=14),
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 16))
+
+# fish biomass 
+# no data for 2005
+ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site)) +
+  facet_wrap(~site) +
+  labs(title = 'Mean Fish Biomass (Primary Consumers)',
+       subtitle = 'Moorea, French Polynesia (2006 - 2021)',
+       x = 'Year',
+       color = 'Site') +
+  scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.title.x = element_text(size=14),
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 16))
+
+```
+
+# plot showing all four variables for a chosen site
+```{r}
+# filter for just LTER 1 to start (would need to make a reactive dataframe on the app)
+temporal_data_1 <- temporal_data %>% 
+  filter(site == "LTER 1")
+
+ggplot(data = temporal_data_1, aes(x = year)) + 
+  geom_point(aes(y = mean_coral_cover, color = "mean_coral_cover")) +
+  geom_line(aes(y = mean_coral_cover, color = "mean_coral_cover")) +
+  geom_point(aes(y = mean_algae_cover, color = "mean_algae_cover")) +
+  geom_line(aes(y = mean_algae_cover, color = "mean_algae_cover")) +
+  geom_point(aes(y = mean_biomass_p_consumers, color = "mean_biomass_p_consumers")) +
+  geom_line(aes(y = mean_biomass_p_consumers, color = "mean_biomass_p_consumers")) +
+  geom_point(aes(y = cots_density, color = "cots_density")) +
+  geom_line(aes(y = cots_density, color = "cots_density"))
 ```
 
