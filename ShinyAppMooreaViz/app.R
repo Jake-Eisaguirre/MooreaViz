@@ -107,15 +107,34 @@ ui <- fluidPage(
                         
                           
                           tabPanel("Metadata")), 
+               
                navbarMenu("Temporal",
-                          tabPanel("Figures",
-                                   pickerInput(inputId = "Variable",
+                          tabPanel("Figures by Variable",
+                                   (pickerInput(inputId = "Variable",
                                                label = "Select a Variable",
-                                               choices = c("Crown of Thorns", "Coral Cover", "Fish Biomass", "Algae"),
-                                               multiple = FALSE),
+                                               choices = c("Crown of Thorns", 
+                                                           "Coral Cover", 
+                                                           "Fish Biomass", 
+                                                           "Algae"),
+                                               multiple = FALSE)),
                                    plotOutput(outputId = "faceted_plot")),
+                                   
+                                   
+                          tabPanel("Figures by Site",
+                                   sidebarPanel(checkboxGroupInput(inputId = "site", 
+                                                                   label = h4("Choose your Site"),
+                                                                   selected = "LTER 1",
+                                                                   choices = list("Site 1" = "LTER 1",
+                                                                     "Site 2" = "LTER 2", 
+                                                                     "Site 3" = "LTER 3", 
+                                                                     "Site 4" = "LTER 4", 
+                                                                     "Site 5" = "LTER 5", 
+                                                                     "Site 6" = "LTER 6"))),
+                                   mainPanel(plotOutput(outputId = "variables_by_site_plot"))),
+                          
                           tabPanel("Metadata")), 
-               tabPanel("Data")
+                          
+                          tabPanel("Data")
     )
 )
 
@@ -177,6 +196,20 @@ server <- function(input, output) {
 
         })
 
+    temporal_reactive_df <- reactive({validate(
+        need(length(input$site) > 0, "Please select at least one site to visualize.")
+    )
+        temporal_data %>% 
+            filter(site %in% input$site)
+    }) 
+    
+    output$variables_by_site_plot <- renderPlot({
+        # insert plot here 
+        ggplot(na.omit(temporal_reactive_df()), aes(x = year, y = mean_coral_cover)) +
+            geom_point() +
+            geom_line(aes(group = site))
+    })
+    
 
 }
 

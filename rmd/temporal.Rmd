@@ -254,4 +254,22 @@ ggplot(data = temporal_data_1, aes(x = year)) +
   geom_point(aes(y = cots_density, color = "cots_density")) +
   geom_line(aes(y = cots_density, color = "cots_density"))
 ```
+Patchwork plot for all 4 variables for a user's chosen LTER site 
+```{r}
+ggplot(data = temporal_data, aes(x = year, y = mean_coral_cover)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site))
+
+ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site))
+
+ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site))
+
+ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site))
+```
 
