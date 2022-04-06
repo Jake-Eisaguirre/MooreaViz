@@ -54,6 +54,10 @@ spatial_brick <- here("data", "spatial_brick.nc")
 
 spatial_brick <- brick(spatial_brick)
 
+#crs 
+crs <- 2976
+
+
 # Tidy Nitrogen Data
 n_data <- nitrogen_data %>% 
     mutate(percent_n_jan = percent_n_jan *100,
@@ -113,40 +117,41 @@ ui <- fluidPage(
     navbarPage("App Title", 
                tabPanel("Home"),
                navbarMenu("Spatial",
-                          tabPanel(title = "Map", 
+                          tabPanel(title = "Map",
                                    
                                    #----
                                    #leaflet map inputs
                                    
-                                   pickerInput(inputId = "Year",
+                                   sidebarPanel(pickerInput(inputId = "Year",
                                                label = "Select a Year:",
                                                choices = c("2016",
                                                            "2017",
                                                            "2018"),
-                                                multiple = FALSE),
+                                                multiple = FALSE,
+                                               width = 80),
                                    shinyWidgets::pickerInput(inputId = "Month",
                                                              label = "Select a Month:",
                                                              choices = c("January", 
                                                                          "July", 
                                                                          "May"),
-                                                             multiple = FALSE), 
+                                                             multiple = FALSE,
+                                                             width = 80), 
                                    shinyWidgets::pickerInput(inputId = "Variable",
                                                              label = "Select a Variable:",
                                                              choices = c("Nitrogen", 
                                                                          "Isotopic Nitrogen", 
                                                                          "Coral Bleaching", 
                                                                          "Predicted Sewage"),
-                                                             multiple = FALSE), 
+                                                             multiple = FALSE,
+                                                             width = 80), 
                                    shinyWidgets::pickerInput(inputId = "Other",
                                                              label = "Select an Add on:",
                                                              choices = c("LTER Sites", 
                                                                          "Observations"),
-                                                             multiple = TRUE),
-                                   
-                                   #---- 
-                                   #leaflet map outputs
-                                   
-                                   leafletOutput(outputId = "leaflet_layers")),
+                                                             multiple = TRUE,
+                                                             width = 80)),
+                                   mainPanel(leafletOutput(outputId = "leaflet_base"))),
+                          
                           
                         
                           
@@ -166,13 +171,21 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$leaflet_layers <- renderLeaflet({
+    output$leaflet_base <- renderLeaflet({
+        
+        #base map
         leaflet(crs) %>% 
-            addProviderTiles("Esri.WorldImagery") %>%
-            addCircleMarkers(lng = n_data$longitude, lat = n_data$latitude,
-                                   color = "black", group = "Observations", radius = 1) %>% 
-            addRasterImage(spatial_brick[[1]], colors = "plasma", opacity = 0.7)
+            addProviderTiles("Esri.WorldImagery") %>% 
+            setView(-149.829529, -17.538843, zoom = 11.5)
             
+    })
+    
+    #interactive map components
+    proxy <- leafletProxy("leaflet_base")
+    
+    observe({
+        proxy %>% addCircleMarkers(lng = n_data$longitude, lat = n_data$latitude,
+                                   color = "black", group = "Observations", radius = 1)
     })
 }
 
