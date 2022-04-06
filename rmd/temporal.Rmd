@@ -18,6 +18,7 @@ library(janitor)
 library(lubridate)
 library(stringr)
 library(plotly)
+library(patchwork)
  
 ```
 
@@ -235,41 +236,32 @@ ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
         axis.title.x = element_text(size=14),
         axis.title.y = element_text(size = 14),
         plot.title = element_text(size = 16))
-
 ```
 
-# plot showing all four variables for a chosen site
-```{r}
-# filter for just LTER 1 to start (would need to make a reactive dataframe on the app)
-temporal_data_1 <- temporal_data %>% 
-  filter(site == "LTER 1")
 
-ggplot(data = temporal_data_1, aes(x = year)) + 
-  geom_point(aes(y = mean_coral_cover, color = "mean_coral_cover")) +
-  geom_line(aes(y = mean_coral_cover, color = "mean_coral_cover")) +
-  geom_point(aes(y = mean_algae_cover, color = "mean_algae_cover")) +
-  geom_line(aes(y = mean_algae_cover, color = "mean_algae_cover")) +
-  geom_point(aes(y = mean_biomass_p_consumers, color = "mean_biomass_p_consumers")) +
-  geom_line(aes(y = mean_biomass_p_consumers, color = "mean_biomass_p_consumers")) +
-  geom_point(aes(y = cots_density, color = "cots_density")) +
-  geom_line(aes(y = cots_density, color = "cots_density"))
-```
 Patchwork plot for all 4 variables for a user's chosen LTER site 
 ```{r}
-ggplot(data = temporal_data, aes(x = year, y = mean_coral_cover)) +
+coral_plot <- ggplot(data = temporal_data, aes(x = year, y = mean_coral_cover)) +
   geom_point(aes(color = site)) +
-  geom_line(aes(group = site, color = site))
+  geom_line(aes(group = site, color = site)) +
+  labs(x = "Year")
 
-ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
+cots_plot <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
   geom_point(aes(color = site)) +
-  geom_line(aes(group = site, color = site))
+  geom_line(aes(group = site, color = site)) +
+  labs(x = "Year")
 
-ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
+biomass_plot <- ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
   geom_point(aes(color = site)) +
-  geom_line(aes(group = site, color = site))
+  geom_line(aes(group = site, color = site)) +
+  labs(x = "Year")
 
-ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
+algae_plot <- ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
   geom_point(aes(color = site)) +
-  geom_line(aes(group = site, color = site))
+  geom_line(aes(group = site, color = site)) +
+  labs(x = "Year")
+
+temporal_patchwork <- coral_plot/cots_plot/biomass_plot/algae_plot
+temporal_patchwork
 ```
 

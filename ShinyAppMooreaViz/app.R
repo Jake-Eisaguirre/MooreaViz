@@ -206,8 +206,8 @@ server <- function(input, output) {
     output$variables_by_site_plot <- renderPlot({
         # insert plot here 
         ggplot(na.omit(temporal_reactive_df()), aes(x = year, y = mean_coral_cover)) +
-            geom_point() +
-            geom_line(aes(group = site))
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site))
     })
     
 
