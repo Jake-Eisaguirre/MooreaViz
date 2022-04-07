@@ -44,10 +44,15 @@ bleach <- read_csv(here("data", "csv", "percent_bleach_2016.csv")) %>%
 site_poly <- read_csv(here("data", "csv", "site_poly.csv"))
 
 #sewage data
+
 sewage_data <- read.csv(here("data/csv/Predicted_nuts.csv")) %>% 
     clean_names()
 
 sewage_data <- cbind(nitrogen_data, sewage_data)
+
+
+temporal_data <- read.csv(here("data/csv/temporal_data_joined.csv"))
+
 
 #sewage
 sewage_2016 <- sewage_data %>% 
@@ -142,6 +147,7 @@ pal_sewage <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 # bathy_df <- as.data.frame(rasterToPoints(bathy_raster_filtered))
 # pal_bathy <- colorNumeric(palette = viridis((25), option = "plasma"), domain = bathy_df$layer, reverse = TRUE)
 
+
 # User Interface ----
 # Creates the structure for your app's look and appearance 
 # Define UI for application that draws a histogram
@@ -201,14 +207,41 @@ ui <- fluidPage(
                         
                           
                           tabPanel("Metadata")), 
+               
                navbarMenu("Temporal",
-                          tabPanel("Figures"),
+                          tabPanel("Figures by Variable",
+                                   (pickerInput(inputId = "Variable",
+                                               label = "Select a Variable",
+                                               choices = c("Crown of Thorns", 
+                                                           "Coral Cover", 
+                                                           "Fish Biomass", 
+                                                           "Algae"),
+                                               multiple = FALSE)),
+                                   plotOutput(outputId = "faceted_plot")),
+                                   
+                                   
+                          tabPanel("Figures by Site",
+                                   sidebarPanel(checkboxGroupInput(inputId = "site", 
+                                                                   label = h4("Choose your Site"),
+                                                                   selected = "LTER 1",
+                                                                   choices = list("Site 1" = "LTER 1",
+                                                                     "Site 2" = "LTER 2", 
+                                                                     "Site 3" = "LTER 3", 
+                                                                     "Site 4" = "LTER 4", 
+                                                                     "Site 5" = "LTER 5", 
+                                                                     "Site 6" = "LTER 6"))),
+                                   mainPanel(plotOutput(outputId = "variables_by_site_plot"))),
+                          
                           tabPanel("Metadata")), 
-               tabPanel("Data")
+                          
+                          tabPanel("Data")
     )
 )
 
-
+# plots 
+# faceted COTS plot
+cots_facet <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
+    geom_point(aes(color = site)) # testing with basic plot
 
 
 # Server ----
@@ -225,6 +258,63 @@ server <- function(input, output, session) {
             
     })
     
+
+    output$faceted_plot <- renderPlot({
+        ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            facet_wrap(~site) +
+            labs(title = 'Crown of Thorns Sea Stars - Annual Site Densities',
+                 subtitle = 'Moorea, French Polynesia (2005 - 2018)',
+                 y = 'Density (count/m^2)',
+                 x = 'Year',
+                 color = 'Site') +
+            scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+            theme_bw() +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1),
+                  panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+                  panel.grid.minor.y = element_blank(),
+                  axis.title.x = element_text(size=14),
+                  axis.title.y = element_text(size = 14),
+                  plot.title = element_text(size = 16))
+        
+        
+        # # NOT SURE WHY THE BELOW IF STATEMENTS DO NOT WORK TO SWITCH THE PLOTS BASED ON INPUT
+        # if (input$Variable == "Crown of Thorns"){
+        #     p <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
+        #         geom_point(aes(color = site))
+        #     }
+        # if (input$Variable == "Coral Cover"){
+        #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_coral_cover)) +
+        #         geom_point(aes(color = site))
+        # }
+        # if (input$Variable == "Fish Biomass"){
+        #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
+        #         geom_point(aes(color = site))
+        # }
+        # if (input$Variable == "Algae"){
+        #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
+        #         geom_point(aes(color = site))
+        # }
+        # 
+        # print(p)
+
+        })
+
+    temporal_reactive_df <- reactive({validate(
+        need(length(input$site) > 0, "Please select at least one site to visualize.")
+    )
+        temporal_data %>% 
+            filter(site %in% input$site)
+    }) 
+    
+    output$variables_by_site_plot <- renderPlot({
+        # insert plot here 
+        ggplot(na.omit(temporal_reactive_df()), aes(x = year, y = mean_coral_cover)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site))
+    })
+   
     
     # reactive observations and data filtering
     Observations <- eventReactive(input$Other, {
@@ -282,7 +372,6 @@ server <- function(input, output, session) {
 
     # observations and polygons reactive 
     
-
 }
 
 # Run the application 
