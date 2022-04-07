@@ -40,14 +40,56 @@ nitrogen_data <- read_csv(here("data", "csv", "N_summary_2016.csv")) %>%
 bleach <- read_csv(here("data", "csv", "percent_bleach_2016.csv")) %>% 
     clean_names()
 
-#10x10 grid for kriging
-grd_sp <- readRDS(here("data", "krig_grid", "grd_sp"))
+#site polygons
+site_poly <- read_csv(here("data", "csv", "site_poly.csv"))
 
 #sewage data
 sewage_data <- read.csv(here("data/csv/Predicted_nuts.csv")) %>% 
     clean_names()
 
 sewage_data <- cbind(nitrogen_data, sewage_data)
+
+#sewage
+sewage_2016 <- sewage_data %>% 
+    dplyr::select(longitude, latitude, urb_nuts) %>% 
+    na.omit()
+#Select column bleach
+bleaching_data <- bleach %>%
+    dplyr::select(longitude, latitude, percent_bleached) %>%
+    na.omit() %>% 
+    group_by(longitude, latitude) %>% 
+    summarise(percent_bleached = mean(percent_bleached))
+# selecting n-july data
+july_ni_data <- n_data %>% 
+    filter(date == "july", method == "d15n") %>%
+    dplyr::select(longitude, latitude, percent_n) %>% 
+    na.omit()
+# selecting n-may data
+may_ni_data <- n_data %>% 
+    filter(date == "may", method == "d15n") %>%
+    dplyr::select(longitude, latitude, percent_n) %>% 
+    na.omit()
+# selecting n-jan data
+jan_ni_data <- n_data %>% 
+    filter(date == "jan", method == "d15n") %>%
+    dplyr::select(longitude, latitude, percent_n) %>% 
+    na.omit()
+# selecting n-july data
+july_np_data <- n_data %>% 
+    filter(date == "july", method == "percent") %>%
+    dplyr::select(longitude, latitude, percent_n) %>% 
+    na.omit()
+# selecting n-may data
+may_np_data <- n_data %>% 
+    filter(date == "may", method == "percent") %>%
+    dplyr::select(longitude, latitude, percent_n) %>% 
+    na.omit()
+# selecting n-jan data
+jan_np_data <- n_data %>% 
+    filter(date == "jan", method == "percent") %>%
+    dplyr::select(longitude, latitude, percent_n) %>% 
+    na.omit()
+
 
 #raster brick minus lidar
 spatial_brick <- here("data", "spatial_brick.nc")
@@ -122,13 +164,15 @@ ui <- fluidPage(
                                    #----
                                    #leaflet map inputs
                                    
-                                   sidebarPanel(pickerInput(inputId = "Year",
-                                               label = "Select a Year:",
-                                               choices = c("2016",
-                                                           "2017",
-                                                           "2018"),
-                                                multiple = FALSE,
-                                               width = 80),
+                                   sidebarPanel(width = 2,
+                                       # Code block for incorporating more years of data
+                                       #pickerInput(inputId = "Year",
+                                                   #label = "Select a Year:",
+                                                   #choices = c("2016",
+                                                               #"2017",
+                                                               #"2018"),
+                                                   #multiple = FALSE,
+                                                   #width = 80),
                                    shinyWidgets::pickerInput(inputId = "Month",
                                                              label = "Select a Month:",
                                                              choices = c("January", 
@@ -144,13 +188,14 @@ ui <- fluidPage(
                                                                          "Predicted Sewage"),
                                                              multiple = FALSE,
                                                              width = 80), 
-                                   shinyWidgets::pickerInput(inputId = "Other",
+                                   checkboxGroupInput(inputId = "Other",
                                                              label = "Select an Add on:",
                                                              choices = c("LTER Sites", 
                                                                          "Observations"),
-                                                             multiple = TRUE,
                                                              width = 80)),
-                                   mainPanel(leafletOutput(outputId = "leaflet_base"))),
+                                   mainPanel(leafletOutput(outputId = "leaflet_base", 
+                                                           width = 900,
+                                                           height = 500))),
                           
                           
                         
@@ -169,7 +214,7 @@ ui <- fluidPage(
 # Server ----
 # Runs the r code to make the visualizations and transform the data for your app to function
 # Define server logic required to draw a histogram
-server <- function(input, output) {
+server <- function(input, output, session) {
 
     output$leaflet_base <- renderLeaflet({
         
@@ -180,13 +225,64 @@ server <- function(input, output) {
             
     })
     
-    #interactive map components
-    proxy <- leafletProxy("leaflet_base")
     
-    observe({
-        proxy %>% addCircleMarkers(lng = n_data$longitude, lat = n_data$latitude,
-                                   color = "black", group = "Observations", radius = 1)
+    # reactive observations and data filtering
+    Observations <- eventReactive(input$Other, {
+        
+        n_data %>% 
+            dplyr::select(latitude, longitude)
     })
+    
+    
+    # reactive polygons and data filtering
+    polgyons <- eventReactive(input$Other, {
+        
+        site_poly %>% 
+            group_by(site)
+    })
+    
+    
+    # observations and polygons reactive 
+
+    observeEvent(input$Other, {
+        proxy <- leafletProxy("leaflet_base")
+        if (!is.null(input$Other) && input$Other == "Observations") { 
+            proxy %>% addCircles(data = Observations(), color = "black", group = "Observations", radius = 3, opacity = 0.2,
+                                 popup = paste("Longitude:", round(n_data$longitude, 4), "<br>", 
+                                               "Latitude:", round(n_data$latitude, 4), "<br>",
+                                               "January Percent N:", jan_np_data$percent_n, "%", "<br>",
+                                               "May Percent N:", may_np_data$percent_n,"%", "<br>",
+                                               "July Percent N:", july_np_data$percent_n,"%", "<br>",
+                                               "January Isotopic N:", jan_ni_data$percent_n,"δ15N", "<br>", 
+                                               "May Isotopic N:", may_ni_data$percent_n,"δ15N", "<br>",
+                                               "July Isotopic N:", july_ni_data$percent_n,"δ15N", "<br>",
+                                               "Percent Coral Bleached:", round(bleaching_data$percent_bleached, 2),"%", "<br>",
+                                               "Predicted Sewage Index:", round(sewage_2016$urb_nuts, 4), "<br>"))}
+        else {
+            proxy %>% clearGroup("Observations")
+        } 
+        
+        if (!is.null(input$Other) && input$Other == "LTER Sites") { 
+            proxy %>% addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
+                                   popup = ~site )}
+        else {
+            proxy %>% clearGroup("LTER Sites")
+        } 
+    }, ignoreNULL = F)
+    
+    
+    
+    
+    # reactive jan n
+    jan_n <- eventReactive(input$Month, {
+        
+        spatial_brick[[1]]
+    })
+    
+
+    # observations and polygons reactive 
+    
+
 }
 
 # Run the application 
