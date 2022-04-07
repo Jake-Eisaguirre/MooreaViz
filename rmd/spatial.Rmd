@@ -436,6 +436,16 @@ bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext =
 
 ```
 
+# Create Raster Brick of Spatial layers
+```{r}
+
+spatial_brick <- brick(jan_ras, may_ras, july_ras, jan_ras_i, may_ras_i, july_ras_i, bleach_raster, sewage_ras)
+
+writeRaster(spatial_brick, here("data", "spatial_brick.nc"), format = "CDF")
+
+```
+
+
 # Creating the LTER site bounding boxes
 In this code chuck we are creating a bounding box for each LTER site and turning them into data frames so we can graph them later on
 ```{r}
@@ -443,37 +453,47 @@ In this code chuck we are creating a bounding box for each LTER site and turning
 latitude <- c(-17.47185366, -17.47185366, -17.48641792, -17.48641792, -17.47185366)
 longitude <- c(-149.8455917, -149.829821, -149.829821, -149.8455917, -149.8455917)
 
-lter_1 <- data.frame(longitude, latitude) 
+lter_1 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 1)
 
 
 latitude <- c(-17.46576169, -17.46576169, -17.48131958, -17.48131958, -17.46576169)
 longitude <- c(-149.8116849, -149.7961685, -149.7961685, -149.8116849, -149.8116849)
 
-lter_2 <- data.frame(longitude, latitude)
+lter_2 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 2)
 
 
 latitude <- c(-17.50382025, -17.50382025, -17.52087158, -17.52087158, -17.50382025)
 longitude <- c(-149.7708619, -149.7519968, -149.7519968, -149.7708619, -149.7708619)
 
-lter_3 <- data.frame(longitude, latitude)
+lter_3 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 3)
 
 
 latitude <- c(-17.53305021, -17.53305021, -17.55064263, -17.55064263, -17.53305021)
 longitude <- c(-149.7772857, -149.7566866, -149.7566866, -149.7772857, -149.7772857)
 
-lter_4 <- data.frame(longitude, latitude)
+lter_4 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 4)
 
 
 latitude <- c(-17.56818162, -17.56818162, -17.59182383, -17.59182383, -17.56818162)
 longitude <- c(-149.8869755, -149.8561009, -149.8561009, -149.8869755, -149.8869755)
 
-lter_5 <- data.frame(longitude, latitude)
+lter_5 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 5)
 
 
 latitude <- c(-17.50735955, -17.50735955, -17.52839766, -17.52839766, -17.50735955)
 longitude <- c(-149.934537, -149.9115336, -149.9115336, -149.934537, -149.934537)
 
-lter_6 <- data.frame(longitude, latitude)
+lter_6 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 6)
+
+site_poly <- rbind(lter_1, lter_2, lter_3, lter_4, lter_5, lter_6)
+
+write_csv(site_poly, here("data", "csv", "site_poly.csv"))
 
 ```
 
@@ -520,102 +540,102 @@ pal_bathy <- colorNumeric(palette = viridis((25), option = "plasma"), domain = b
 This is the code for our leaflet map 
 ```{r}
 
-leaf <- leaflet(crs) %>% 
-  addProviderTiles("Esri.WorldImagery") %>% 
-  addCircleMarkers(lng = n_data$longitude, lat = n_data$latitude,
-                   color = "black", group = "Observations", radius = 1, 
-                   popup = paste("Longitude", n_data$longitude, "<br>",
-                           "Latitude:", n_data$latitude, "<br>",
-                           "Percent N Jan:", jan_np_data$percent_n, "<br>",
-                           "Percent N May:", may_np_data$percent_n, "<br>",
-                           "Percent N July:", july_np_data$percent_n, "<br>",
-                           "Isotopic N Jan:", jan_ni_data$percent_n, "<br>",
-                           "Isotopic N May:", may_ni_data$percent_n, "<br>",
-                           "Isotopic N July:", july_ni_data$percent_n, "<br>",
-                           "Percet Bleached:", bleaching_data$percent_bleached, "<br>",
-                           "Predicted Sewage:", sewage_2016$urb_nuts, "<br>")) %>% 
-  addRasterImage(jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
-  addRasterImage(may_ras, colors = "plasma", group = "May N", opacity = 0.7) %>% 
-  addRasterImage(july_ras, colors = "plasma", group = "July N", opacity = 0.7) %>% 
-  addRasterImage(jan_ras_i, colors = "plasma", group = "January N Isotopic", opacity = 0.7) %>% 
-  addRasterImage(may_ras_i, colors = "plasma", group = "May N Isotopic", opacity = 0.7) %>% 
-  addRasterImage(july_ras_i, colors = "plasma", group = "July N Isotopic", opacity = 0.7) %>%
-  addRasterImage(bleach_raster, colors = "plasma", group = "Percent Bleached", opacity = 0.7) %>%
-  addRasterImage(sewage_ras, colors = "plasma", group = "Predicted Sewage", opacity = 0.7) %>%
-  addRasterImage(bathy_raster_filtered, colors = "plasma", group = "Depth", opacity = 0.7) %>% 
-  addPolygons(lng = lter_1$longitude, lat = lter_1$latitude, group = "LTER Sites",
-              popup = "LTER 1") %>% 
-  addPolygons(lng = lter_2$longitude, lat = lter_2$latitude, group = "LTER Sites",
-              popup = "LTER 2") %>% 
-  addPolygons(lng = lter_3$longitude, lat = lter_3$latitude, group = "LTER Sites",
-              popup = "LTER 3") %>% 
-  addPolygons(lng = lter_4$longitude, lat = lter_4$latitude, group = "LTER Sites",
-              popup = "LTER 4") %>% 
-  addPolygons(lng = lter_5$longitude, lat = lter_5$latitude, group = "LTER Sites",
-              popup = "LTER 5") %>% 
-  addPolygons(lng = lter_6$longitude, lat = lter_6$latitude, group = "LTER Sites",
-              popup = "LTER 6") %>% 
-  addLayersControl(
-    baseGroups = c("January N", 
-                   "May N", 
-                   "July N", 
-                   "January N Isotopic", 
-                   "May N Isotopic", 
-                   "July N Isotopic",
-                   "Percent Bleached", 
-                   "Predicted Sewage",
-                   "Depth"),
-    overlayGroups = c("Observations", "LTER Sites"),
-    options = layersControlOptions(collapsed = FALSE))  %>% 
-  addLegend(data = jan_data, title = 'January N', pal = pal_jan,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "January N",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-  onRender("
-    function(el, x) {
-      var updateLegend = function () {
-          var selectedGroup =       document.querySelectorAll('input:checked')[0].nextSibling.innerText.substr(1);
-
-          document.querySelectorAll('.legend').forEach(a => a.hidden=true);
-          document.querySelectorAll('.legend').forEach(l => {
-            if (l.children[0].children[0].innerText == selectedGroup) l.hidden=false;
-          });
-      };
-      updateLegend();
-      this.on('baselayerchange', e => updateLegend());
-    }") %>% 
-  addLegend(data = may_data, title = 'May N', pal = pal_may,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "May N",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-  addLegend(data = july_data, title = 'July N', pal = pal_july,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "July N",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-  addLegend(data = jan_i_data, title = 'January N Isotopic', pal = pal_jan_i,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "January N Isotopic",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-  addLegend(data = may_i_data, title = 'May N Isotopic', pal = pal_may_i,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "May N Isotopic",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-  addLegend(data = july_i_data, title = 'July N Isotopic', pal = pal_july_i,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "July N Isotopic",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-   addLegend(data = bleach_data, title = 'Percent Bleached', pal = pal_bleach,
-            position = "bottomright", 
-            values = ~var1.pred, opacity = 1, group = "Percent Bleached",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-  addLegend(data = sew_dat, title = 'Predicted Sewage', pal = pal_sewage,
-            position = "bottomright",
-            values = ~var1.pred, opacity = 1, group = "Predicted Sewage",
-            labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
-  addLegend(data = bathy_df, title = 'Depth', pal = pal_bathy, 
-            position = "bottomright",
-            values = ~layer, opacity = 1, group = 'Depth')
-
-saveWidget(leaf, file = here("figs", "leaf.html"))
+# leaf <- leaflet(crs) %>% 
+#   addProviderTiles("Esri.WorldImagery") %>% 
+#   addCircleMarkers(lng = n_data$longitude, lat = n_data$latitude,
+#                    color = "black", group = "Observations", radius = 1, 
+#                    popup = paste("Longitude", n_data$longitude, "<br>",
+#                            "Latitude:", n_data$latitude, "<br>",
+#                            "Percent N Jan:", jan_np_data$percent_n, "<br>",
+#                            "Percent N May:", may_np_data$percent_n, "<br>",
+#                            "Percent N July:", july_np_data$percent_n, "<br>",
+#                            "Isotopic N Jan:", jan_ni_data$percent_n, "<br>",
+#                            "Isotopic N May:", may_ni_data$percent_n, "<br>",
+#                            "Isotopic N July:", july_ni_data$percent_n, "<br>",
+#                            "Percet Bleached:", bleaching_data$percent_bleached, "<br>",
+#                            "Predicted Sewage:", sewage_2016$urb_nuts, "<br>")) %>% 
+#   addRasterImage(jan_ras, colors = "plasma", group = "January N", opacity = 0.7) %>% 
+#   addRasterImage(may_ras, colors = "plasma", group = "May N", opacity = 0.7) %>% 
+#   addRasterImage(july_ras, colors = "plasma", group = "July N", opacity = 0.7) %>% 
+#   addRasterImage(jan_ras_i, colors = "plasma", group = "January N Isotopic", opacity = 0.7) %>% 
+#   addRasterImage(may_ras_i, colors = "plasma", group = "May N Isotopic", opacity = 0.7) %>% 
+#   addRasterImage(july_ras_i, colors = "plasma", group = "July N Isotopic", opacity = 0.7) %>%
+#   addRasterImage(bleach_raster, colors = "plasma", group = "Percent Bleached", opacity = 0.7) %>%
+#   addRasterImage(sewage_ras, colors = "plasma", group = "Predicted Sewage", opacity = 0.7) %>%
+#   addRasterImage(bathy_raster_filtered, colors = "plasma", group = "Depth", opacity = 0.7) %>% 
+#   addPolygons(lng = lter_1$longitude, lat = lter_1$latitude, group = "LTER Sites",
+#               popup = "LTER 1") %>% 
+#   addPolygons(lng = lter_2$longitude, lat = lter_2$latitude, group = "LTER Sites",
+#               popup = "LTER 2") %>% 
+#   addPolygons(lng = lter_3$longitude, lat = lter_3$latitude, group = "LTER Sites",
+#               popup = "LTER 3") %>% 
+#   addPolygons(lng = lter_4$longitude, lat = lter_4$latitude, group = "LTER Sites",
+#               popup = "LTER 4") %>% 
+#   addPolygons(lng = lter_5$longitude, lat = lter_5$latitude, group = "LTER Sites",
+#               popup = "LTER 5") %>% 
+#   addPolygons(lng = lter_6$longitude, lat = lter_6$latitude, group = "LTER Sites",
+#               popup = "LTER 6") %>% 
+#   addLayersControl(
+#     baseGroups = c("January N", 
+#                    "May N", 
+#                    "July N", 
+#                    "January N Isotopic", 
+#                    "May N Isotopic", 
+#                    "July N Isotopic",
+#                    "Percent Bleached", 
+#                    "Predicted Sewage",
+#                    "Depth"),
+#     overlayGroups = c("Observations", "LTER Sites"),
+#     options = layersControlOptions(collapsed = FALSE))  %>% 
+#   addLegend(data = jan_data, title = 'January N', pal = pal_jan,
+#             position = "bottomright", 
+#             values = ~var1.pred, opacity = 1, group = "January N",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#   onRender("
+#     function(el, x) {
+#       var updateLegend = function () {
+#           var selectedGroup =       document.querySelectorAll('input:checked')[0].nextSibling.innerText.substr(1);
+# 
+#           document.querySelectorAll('.legend').forEach(a => a.hidden=true);
+#           document.querySelectorAll('.legend').forEach(l => {
+#             if (l.children[0].children[0].innerText == selectedGroup) l.hidden=false;
+#           });
+#       };
+#       updateLegend();
+#       this.on('baselayerchange', e => updateLegend());
+#     }") %>% 
+#   addLegend(data = may_data, title = 'May N', pal = pal_may,
+#             position = "bottomright", 
+#             values = ~var1.pred, opacity = 1, group = "May N",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#   addLegend(data = july_data, title = 'July N', pal = pal_july,
+#             position = "bottomright", 
+#             values = ~var1.pred, opacity = 1, group = "July N",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#   addLegend(data = jan_i_data, title = 'January N Isotopic', pal = pal_jan_i,
+#             position = "bottomright", 
+#             values = ~var1.pred, opacity = 1, group = "January N Isotopic",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#   addLegend(data = may_i_data, title = 'May N Isotopic', pal = pal_may_i,
+#             position = "bottomright", 
+#             values = ~var1.pred, opacity = 1, group = "May N Isotopic",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#   addLegend(data = july_i_data, title = 'July N Isotopic', pal = pal_july_i,
+#             position = "bottomright", 
+#             values = ~var1.pred, opacity = 1, group = "July N Isotopic",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#    addLegend(data = bleach_data, title = 'Percent Bleached', pal = pal_bleach,
+#             position = "bottomright", 
+#             values = ~var1.pred, opacity = 1, group = "Percent Bleached",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#   addLegend(data = sew_dat, title = 'Predicted Sewage', pal = pal_sewage,
+#             position = "bottomright",
+#             values = ~var1.pred, opacity = 1, group = "Predicted Sewage",
+#             labFormat = labelFormat(transform = function(var1.pred) sort(var1.pred, decreasing = TRUE))) %>% 
+#   addLegend(data = bathy_df, title = 'Depth', pal = pal_bathy, 
+#             position = "bottomright",
+#             values = ~layer, opacity = 1, group = 'Depth')
+# 
+# saveWidget(leaf, file = here("figs", "leaf.html"))
 ```
 
