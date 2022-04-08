@@ -189,7 +189,7 @@ ui <- fluidPage(
                                                              label = "Select a Variable:",
                                                              choices = c("Percent Nitrogen", 
                                                                          "Isotopic Nitrogen", 
-                                                                         "Coral Bleaching", 
+                                                                         "Percent Coral Bleached", 
                                                                          "Predicted Sewage"),
                                                              width = 80), 
                                    checkboxGroupInput(inputId = "Other",
@@ -323,7 +323,7 @@ server <- function(input, output, session) {
     
     
     # reactive polygons and data filtering
-    polgyons <- eventReactive(input$Other, {
+    polgyons <- reactive({
         
         site_poly %>% 
             group_by(site)
@@ -363,20 +363,20 @@ server <- function(input, output, session) {
     
     
     # reactive jan n
-    jan_n <- eventReactive(input$Month == "January", {
+    jan_n <- reactive({
         
         spatial_brick[[1]]
     })
     
     
     # reactive may n
-    may_n <- eventReactive(input$Month == "May", {
+    may_n <- reactive({
         
         spatial_brick[[2]]
     })
     
     # reactive july n
-    july_n <- eventReactive(input$Month == "July", {
+    july_n <- reactive({
         
         spatial_brick[[3]]
     })
@@ -385,45 +385,54 @@ server <- function(input, output, session) {
     #sync button
     
     observeEvent({
-        input$Month == "January"},
+        input$Month},
         {
         proxy <- leafletProxy("leaflet_base", session) 
         if(!is.null(input$Month) && input$Month == "January" ){
-            proxy %>% clearImages() %>% addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
-                                                       layerId = input$January)}
-        else {
-            proxy %>% clearImages()
+            proxy  %>% addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                                       layerId = "January")}
+        else{
         }
         
-        
-    }, ignoreNULL = F)
-
-    
-
-    #sync button may n
-    observeEvent(input$Month, {
-        proxy <- leafletProxy("leaflet_base", session)
         if(!is.null(input$Month) && input$Month == "May" ){
-            proxy %>% clearImages() %>%  addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
+            proxy %>%  addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
                                                         layerId = "May")}
+        else{
+        }
+        
+        if(!is.null(c(input$Month)) && c(input$Month == "July") ){
+            proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
+                                     layerId = "July")}
+        
+        
         else {
             proxy %>% clearImages()
         }
+        
+        
     }, ignoreNULL = F)
+
     
-    
-    
-    #sync button july n
-    observeEvent(input$Month,    
+    # reactive coral belach
+    bleach <- reactive({
+        
+        spatial_brick[[7]]
+    })
+
+   
+    #sync button
+    observeEvent({
+        input$Variable},
         {
-            proxy <- leafletProxy("leaflet_base", session)
-            if(!is.null(input$Month) && input$Month == "July" ){
-                proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
-                                         layerId = "July")}
+            proxy <- leafletProxy("leaflet_base") 
+            if(!is.null(input$Variable) && input$Variable == "Percent Coral Bleached" ){
+                proxy  %>% addRasterImage(bleach(), colors = "plasma", group = "Percent Coral Bleached",
+                                          opacity = 0.7, layerId = "Percent Coral Bleached")}
+            
             else {
                 proxy %>% clearImages()
             }
-        }, ignoreNULL = F)
+        }, ignoreNULL = T)
     
     
 }
