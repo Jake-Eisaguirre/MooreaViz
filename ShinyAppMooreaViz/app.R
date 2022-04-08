@@ -179,20 +179,18 @@ ui <- fluidPage(
                                                                #"2018"),
                                                    #multiple = FALSE,
                                                    #width = 80),
-                                   shinyWidgets::pickerInput(inputId = "Month",
+                                       checkboxGroupInput(inputId = "Month",
                                                              label = "Select a Month:",
                                                              choices = c("January", 
-                                                                         "July", 
-                                                                         "May"),
-                                                             multiple = FALSE,
+                                                                         "May", 
+                                                                         "July"),
                                                              width = 80), 
-                                   shinyWidgets::pickerInput(inputId = "Variable",
+                                       checkboxGroupInput(inputId = "Variable",
                                                              label = "Select a Variable:",
-                                                             choices = c("Nitrogen", 
+                                                             choices = c("Percent Nitrogen", 
                                                                          "Isotopic Nitrogen", 
                                                                          "Coral Bleaching", 
                                                                          "Predicted Sewage"),
-                                                             multiple = FALSE,
                                                              width = 80), 
                                    checkboxGroupInput(inputId = "Other",
                                                              label = "Select an Add on:",
@@ -317,7 +315,7 @@ server <- function(input, output, session) {
    
     
     # reactive observations and data filtering
-    Observations <- eventReactive(input$Other, {
+    Observations <- reactive({
         
         n_data %>% 
             dplyr::select(latitude, longitude)
@@ -353,7 +351,8 @@ server <- function(input, output, session) {
         } 
         
         if (!is.null(input$Other) && input$Other == "LTER Sites") { 
-            proxy %>% addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
+            proxy %>% 
+                addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
                                    popup = ~site )}
         else {
             proxy %>% clearGroup("LTER Sites")
@@ -364,13 +363,68 @@ server <- function(input, output, session) {
     
     
     # reactive jan n
-    jan_n <- eventReactive(input$Month, {
+    jan_n <- eventReactive(input$Month == "January", {
         
         spatial_brick[[1]]
     })
     
+    
+    # reactive may n
+    may_n <- eventReactive(input$Month == "May", {
+        
+        spatial_brick[[2]]
+    })
+    
+    # reactive july n
+    july_n <- eventReactive(input$Month == "July", {
+        
+        spatial_brick[[3]]
+    })
+    
 
-    # observations and polygons reactive 
+    #sync button
+    
+    observeEvent({
+        input$Month == "January"},
+        {
+        proxy <- leafletProxy("leaflet_base", session) 
+        if(!is.null(input$Month) && input$Month == "January" ){
+            proxy %>% clearImages() %>% addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                                       layerId = input$January)}
+        else {
+            proxy %>% clearImages()
+        }
+        
+        
+    }, ignoreNULL = F)
+
+    
+
+    #sync button may n
+    observeEvent(input$Month, {
+        proxy <- leafletProxy("leaflet_base", session)
+        if(!is.null(input$Month) && input$Month == "May" ){
+            proxy %>% clearImages() %>%  addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                                        layerId = "May")}
+        else {
+            proxy %>% clearImages()
+        }
+    }, ignoreNULL = F)
+    
+    
+    
+    #sync button july n
+    observeEvent(input$Month,    
+        {
+            proxy <- leafletProxy("leaflet_base", session)
+            if(!is.null(input$Month) && input$Month == "July" ){
+                proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
+                                         layerId = "July")}
+            else {
+                proxy %>% clearImages()
+            }
+        }, ignoreNULL = F)
+    
     
 }
 
