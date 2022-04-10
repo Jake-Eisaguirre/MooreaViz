@@ -64,6 +64,16 @@ bleaching_data <- bleach %>%
     na.omit() %>% 
     group_by(longitude, latitude) %>% 
     summarise(percent_bleached = mean(percent_bleached))
+
+# Tidy Nitrogen Data
+n_data <- nitrogen_data %>% 
+    mutate(percent_n_jan = percent_n_jan *100,
+           percent_n_may = percent_n_may *100,
+           percent_n_july = percent_n_july *100) %>% #turning them into %s 
+    pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
+    separate(type, into = c("method","random", "date"), sep = "_") %>% 
+    dplyr::select(-random)
+
 # selecting n-july data
 july_ni_data <- n_data %>% 
     filter(date == "july", method == "d15n") %>%
@@ -106,13 +116,13 @@ crs <- 2976
 
 
 # Tidy Nitrogen Data
-n_data <- nitrogen_data %>% 
-    mutate(percent_n_jan = percent_n_jan *100,
-           percent_n_may = percent_n_may *100,
-           percent_n_july = percent_n_july *100) %>% #turning them into %s 
-    pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
-    separate(type, into = c("method","random", "date"), sep = "_") %>% 
-    dplyr::select(-random)
+# n_data <- nitrogen_data %>% 
+#     mutate(percent_n_jan = percent_n_jan *100,
+#            percent_n_may = percent_n_may *100,
+#            percent_n_july = percent_n_july *100) %>% #turning them into %s 
+#     pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
+#     separate(type, into = c("method","random", "date"), sep = "_") %>% 
+#     dplyr::select(-random)
 
 #Pals
 # percent nitrogen 
@@ -308,13 +318,43 @@ server <- function(input, output, session) {
             filter(site %in% input$site)
     }) 
     
-    output$variables_by_site_plot <- renderPlot({
-        # insert plot here 
-        ggplot(na.omit(temporal_reactive_df()), aes(x = year, y = mean_coral_cover)) +
-            geom_point(aes(color = site)) +
-            geom_line(aes(group = site, color = site))
-    })
+    # output$variables_by_site_plot <- renderPlot({
+    #     # insert plot here 
+    #     ggplot(na.omit(temporal_reactive_df()), aes(x = year, y = mean_coral_cover)) +
+    #         geom_point(aes(color = site)) +
+    #         geom_line(aes(group = site, color = site))
+    # })
    
+    output$variables_by_site_plot <- renderPlot({
+        coral_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_coral_cover)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "Year",
+                 y = expression(atop("Mean Coral Cover", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+        
+        cots_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = cots_density)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "Year",
+                 y = expression(atop("COTS Density", paste(paste("(Count per ", m^{2}, ")")))))
+        
+        biomass_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_biomass_p_consumers)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "Year",
+                 y = expression(atop("Mean Fish Biomass", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+        
+        algae_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_algae_cover)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "Year",
+                 y = expression(atop("Mean Algae Cover", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+        
+        coral_plot/cots_plot/biomass_plot/algae_plot +
+            plot_layout(guides = 'collect') # combines the legends 
+            # plot_layout(heights = unit(c(3.5, 3.5, 3.5, 3.5), c('cm', 'null'))) 
+    
+    })
     
     # reactive observations and data filtering
     Observations <- eventReactive(input$Other, {
