@@ -330,7 +330,7 @@ server <- function(input, output, session) {
             geom_point(aes(color = site)) +
             geom_line(aes(group = site, color = site)) +
             labs(x = "Year",
-                 y = expression(atop("Mean Coral Cover", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+                 y = expression(atop("Mean Coral Cover", paste(paste("(% per 0.25 ", m^{2}, ")"))))) 
         
         cots_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = cots_density)) +
             geom_point(aes(color = site)) +
