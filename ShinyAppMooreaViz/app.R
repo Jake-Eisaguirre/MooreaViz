@@ -252,10 +252,7 @@ ui <- fluidPage(
     )
 )
 
-# plots 
-# faceted COTS plot
-# cots_facet <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
-#     geom_point(aes(color = site)) # testing with basic plot
+
 
 
 # Server ----
@@ -279,7 +276,7 @@ server <- function(input, output, session) {
     # }) 
     
     output$faceted_plot <- renderPlot({
-        ggplot(data = temporal_data, aes(x = year, y = !!input$Temp_Variable)) +
+        ggplot(data = temporal_data, aes_string(x = "year", y = input$Temp_Variable)) +
             geom_point(aes(color = site)) # +
             # geom_line(aes(group = site, color = site)) # +
             # facet_wrap(~site) +
@@ -376,8 +373,7 @@ server <- function(input, output, session) {
         coral_plot/cots_plot/biomass_plot/algae_plot +
             plot_layout(guides = 'collect') # combines the legends 
             # plot_layout(heights = unit(c(3.5, 3.5, 3.5, 3.5), c('cm', 'null'))) 
-    
-    })
+        })
     
     # reactive observations and data filtering
     Observations <- eventReactive(input$Other, {
