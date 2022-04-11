@@ -179,20 +179,20 @@ ui <- fluidPage(
                                                                #"2018"),
                                                    #multiple = FALSE,
                                                    #width = 80),
-                                       checkboxGroupInput(inputId = "Month",
+                                       checkboxGroupButtons(inputId = "Month",
                                                              label = "Select a Month:",
                                                              choices = c("January", 
                                                                          "May", 
                                                                          "July"),
                                                              width = 80), 
-                                       checkboxGroupInput(inputId = "Variable",
+                                       checkboxGroupButtons(inputId = "Variable",
                                                              label = "Select a Variable:",
                                                              choices = c("Percent Nitrogen", 
                                                                          "Isotopic Nitrogen", 
                                                                          "Percent Coral Bleached", 
                                                                          "Predicted Sewage"),
                                                              width = 80), 
-                                   checkboxGroupInput(inputId = "Other",
+                                       checkboxGroupButtons(inputId = "Other",
                                                              label = "Select an Add on:",
                                                              choices = c("LTER Sites", 
                                                                          "Observations"),
@@ -363,6 +363,7 @@ server <- function(input, output, session) {
     
     
     # reactive jan n
+  
     jan_n <- reactive({
         
         spatial_brick[[1]]
@@ -383,36 +384,31 @@ server <- function(input, output, session) {
     
 
     #sync button
+    proxy <- leafletProxy("leaflet_base", session)
     
-    observeEvent({
-        input$Month},
-        {
-        proxy <- leafletProxy("leaflet_base", session) 
-        if(!is.null(input$Month) && input$Month == "January" ){
-            proxy  %>% addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
-                                                       layerId = "January")}
-        else{
-        }
-        
-        if(!is.null(input$Month) && input$Month == "May" ){
-            proxy %>%  addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
-                                                        layerId = "May")}
-        else{
-        }
-        
-        if(!is.null(c(input$Month)) && c(input$Month == "July") ){
-            proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
-                                     layerId = "July")}
-        
-        
-        else {
-            proxy %>% clearImages()
-        }
-        
-        
-    }, ignoreNULL = F)
-
-    
+        observeEvent({
+            input$Month},
+            {
+                
+                if(!is.null(input$Month) && input$Month == "January" ){
+                    proxy  %>% 
+                        addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                              layerId = "January")}
+                else if(!is.null(input$Month) && input$Month == "May" ){
+                    proxy %>% clearImages() %>% 
+                        addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "May")}
+                else if (!is.null(input$Month) && input$Month == "July"){ 
+                    
+                    proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
+                                             layerId = "July")}
+                
+                
+                else {
+                    proxy %>%  clearImages()
+                }
+            }, ignoreNULL = F)               
+   
     # reactive coral belach
     bleach <- reactive({
         
