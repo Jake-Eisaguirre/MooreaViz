@@ -156,10 +156,16 @@ ui <- fluidPage(
                         
                           
                           tabPanel("Metadata")), 
+               
+               
+               
                navbarMenu("Temporal",
                           tabPanel("Figures"),
-                          tabPanel("Metadata")), 
-               tabPanel("Data")
+                          tabPanel("Metadata", 
+                          "This is where the metadata goes")), 
+               
+               
+              
     )
 )
 
