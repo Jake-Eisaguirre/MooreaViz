@@ -188,10 +188,14 @@ ui <- fluidPage(
                                        checkboxGroupButtons(inputId = "Variable",
                                                              label = "Select a Variable:",
                                                              choices = c("Percent Nitrogen", 
-                                                                         "Isotopic Nitrogen", 
-                                                                         "Percent Coral Bleached", 
-                                                                         "Predicted Sewage"),
+                                                                         "Isotopic Nitrogen"),
                                                              width = 80), 
+                                       checkboxGroupButtons(inputId = "Additional",
+                                                            label = "Select Aditional Layer",
+                                                            choices = c("Percent Coral Bleached", 
+                                                                        "Predicted Sewage",
+                                                                        "Bathymetry"),
+                                                            width = 80),
                                        checkboxGroupButtons(inputId = "Other",
                                                              label = "Select an Add on:",
                                                              choices = c("LTER Sites", 
@@ -346,23 +350,24 @@ server <- function(input, output, session) {
                                                "July Isotopic N:", july_ni_data$percent_n,"δ15N", "<br>",
                                                "Percent Coral Bleached:", round(bleaching_data$percent_bleached, 2),"%", "<br>",
                                                "Predicted Sewage Index:", round(sewage_2016$urb_nuts, 4), "<br>"))}
-        else {
-            proxy %>% clearGroup("Observations")
-        } 
         
-        if (!is.null(input$Other) && input$Other == "LTER Sites") { 
+        else if (!is.null(input$Other) && input$Other == "LTER Sites") { 
             proxy %>% 
                 addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
-                                   popup = ~site )}
-        else {
-            proxy %>% clearGroup("LTER Sites")
+                             popup = ~site )}
+       
+         else {
+            proxy %>% clearGroup("LTER Sites") %>%  clearGroup("Observations")
         } 
+        
+
+
     }, ignoreNULL = F)
     
     
     
     
-    # reactive jan n
+    # reactive jan n %
   
     jan_n <- reactive({
         
@@ -370,16 +375,36 @@ server <- function(input, output, session) {
     })
     
     
-    # reactive may n
+    # reactive may n %
     may_n <- reactive({
         
         spatial_brick[[2]]
     })
     
-    # reactive july n
+    # reactive july n %
     july_n <- reactive({
         
         spatial_brick[[3]]
+    })
+    
+    # reactive jan n i
+    
+    jan_n_i <- reactive({
+        
+        spatial_brick[[4]]
+    })
+    
+    
+    # reactive may n i
+    may_n_i <- reactive({
+        
+        spatial_brick[[5]]
+    })
+    
+    # reactive july n i
+    july_n_i <- reactive({
+        
+        spatial_brick[[6]]
     })
     
 
@@ -387,21 +412,49 @@ server <- function(input, output, session) {
     proxy <- leafletProxy("leaflet_base", session)
     
         observeEvent({
-            input$Month},
+            c(input$Month, input$Variable)},
             {
                 
-                if(!is.null(input$Month) && input$Month == "January" ){
+                if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
+                   && input$Variable == "Percent Nitrogen"){
                     proxy  %>% 
                         addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
-                                              layerId = "January")}
-                else if(!is.null(input$Month) && input$Month == "May" ){
-                    proxy %>% clearImages() %>% 
+                                       layerId = "January")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
+                   && input$Variable == "Isotopic Nitrogen"){
+                    proxy  %>% 
+                        addRasterImage(jan_n_i(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                       layerId = "January")
+                }
+                    
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
+                        && input$Variable == "Percent Nitrogen"){
+                    proxy %>% 
                         addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
-                                       layerId = "May")}
-                else if (!is.null(input$Month) && input$Month == "July"){ 
+                                       layerId = "May")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
+                        && input$Variable == "Isotopic Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(may_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "May")
+                }
+                else if (!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July"
+                         && input$Variable == "Percent Nitrogen"){ 
                     
                     proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
-                                             layerId = "July")}
+                                             layerId = "July")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July" 
+                        && input$Variable == "Isotopic Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(july_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "July")
+                }
                 
                 
                 else {
@@ -415,22 +468,42 @@ server <- function(input, output, session) {
         spatial_brick[[7]]
     })
 
+    # reactive sewage
+    sewage <- reactive({
+        
+        spatial_brick[[8]]
+    })
    
-    #sync button
+    # reactive lidar
+    bathy <- reactive({
+        
+        spatial_brick[[9]]
+    })
+    
+    
+    #sync button coral bleach
     observeEvent({
-        input$Variable},
+        input$Additional},
         {
-            proxy <- leafletProxy("leaflet_base") 
-            if(!is.null(input$Variable) && input$Variable == "Percent Coral Bleached" ){
+            if(!is.null(input$Additional) && input$Additional == "Percent Coral Bleached" ){
+                
                 proxy  %>% addRasterImage(bleach(), colors = "plasma", group = "Percent Coral Bleached",
                                           opacity = 0.7, layerId = "Percent Coral Bleached")}
+            else if (!is.null(input$Additional) && input$Additional == "Predicted Sewage" ){
+                
+                proxy  %>% addRasterImage(sewage(), colors = "plasma", group = "Predicted Sewage",
+                                          opacity = 0.7, layerId = "Predicted Sewage")}
+            else if (!is.null(input$Additional) && input$Additional == "Bathymetry" ){
+                
+                proxy  %>% addRasterImage(bathy(), colors = "plasma", group = "Bathymetry",
+                                          opacity = 0.7, layerId = "Bathymetry")}
             
             else {
                 proxy %>% clearImages()
             }
-        }, ignoreNULL = T)
+        }, ignoreNULL = F)
     
-    
+
 }
 
 # Run the application 
