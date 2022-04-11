@@ -115,7 +115,11 @@ ui <- fluidPage(
                   img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
 
     navbarPage("App Title", 
-               tabPanel("Home"),
+               tabPanel("Home", 
+                        img(src = "mcr_logo.png", height = 60, width = 150, align = "center"), 
+                        p("The Moorea Coral Reef (MCR) LTER site, established in 2004, is an interdisciplinary, landscape-scale program whose goal is to advance understanding of key mechanisms that modulate ecosystem processes and community structure of coral reefs through integrated research, education and outreach. Our site is the coral reef complex that encircles the 60 km perimeter of Moorea (17°30'S, 149°50'W), French Polynesia."), 
+                
+                        p("A fundamental goal of the the Moorea Coral Reef (MCR) LTER site is to advance understanding that enables accurate forecasts of the behavior of coral reef ecosystems to environmental forcing. To this end we seek to understand the mechanistic basis of change in coral reefs by: (i) elucidating major controls over reef dynamics, and (ii) determining how they are influenced by the major pulse disturbances (e.g., cyclones, coral bleaching, coral predator outbreaks) and local press drivers (e.g., fishing, nutrient enrichment) to which they are increasingly being subjected, against a background of slowly changing environmental drivers associated with global climate change and ocean acidification."),
                navbarMenu("Spatial",
                           tabPanel(title = "Map",
                                    
@@ -162,12 +166,12 @@ ui <- fluidPage(
                navbarMenu("Temporal",
                           tabPanel("Figures"),
                           tabPanel("Metadata", 
-                          "This is where the metadata goes")), 
+                          "This is where the metadata goes")) 
                
                
               
     )
-)
+))
 
 
 
