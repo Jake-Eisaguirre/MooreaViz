@@ -279,8 +279,5 @@ ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
   geom_line(aes(group = site, color = site)) +
   labs(x = "Year",
        y = expression(atop("Mean Algae Cover", paste(paste("(% per ", m^{2}, ")")))))
-
-
-
 ```
 
