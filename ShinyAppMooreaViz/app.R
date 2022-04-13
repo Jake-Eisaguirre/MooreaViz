@@ -182,22 +182,24 @@ ui <- fluidPage(
                                                                #"2018"),
                                                    #multiple = FALSE,
                                                    #width = 80),
-                                   shinyWidgets::pickerInput(inputId = "Month",
+                                       checkboxGroupButtons(inputId = "Month",
                                                              label = "Select a Month:",
                                                              choices = c("January", 
-                                                                         "July", 
-                                                                         "May"),
-                                                             multiple = FALSE,
+                                                                         "May", 
+                                                                         "July"),
                                                              width = 80), 
-                                   shinyWidgets::pickerInput(inputId = "Variable",
+                                       checkboxGroupButtons(inputId = "Variable",
                                                              label = "Select a Variable:",
-                                                             choices = c("Nitrogen", 
-                                                                         "Isotopic Nitrogen", 
-                                                                         "Coral Bleaching", 
-                                                                         "Predicted Sewage"),
-                                                             multiple = FALSE,
+                                                             choices = c("Percent Nitrogen", 
+                                                                         "Isotopic Nitrogen"),
                                                              width = 80), 
-                                   checkboxGroupInput(inputId = "Other",
+                                       checkboxGroupButtons(inputId = "Additional",
+                                                            label = "Select Aditional Layer",
+                                                            choices = c("Percent Coral Bleached", 
+                                                                        "Predicted Sewage",
+                                                                        "Bathymetry"),
+                                                            width = 80),
+                                       checkboxGroupButtons(inputId = "Other",
                                                              label = "Select an Add on:",
                                                              choices = c("LTER Sites", 
                                                                          "Observations"),
@@ -323,9 +325,11 @@ server <- function(input, output, session) {
             geom_line(aes(group = site, color = site))
     })
    
-    
+  
     # reactive observations and data filtering ----
-    Observations <- eventReactive(input$Other, {
+    Observations <- reactive({
+
+ 
         
         n_data %>% 
             dplyr::select(latitude, longitude)
@@ -333,7 +337,7 @@ server <- function(input, output, session) {
     
     
     # reactive polygons and data filtering
-    polgyons <- eventReactive(input$Other, {
+    polgyons <- reactive({
         
         site_poly %>% 
             group_by(site)
@@ -356,30 +360,160 @@ server <- function(input, output, session) {
                                                "July Isotopic N:", july_ni_data$percent_n,"δ15N", "<br>",
                                                "Percent Coral Bleached:", round(bleaching_data$percent_bleached, 2),"%", "<br>",
                                                "Predicted Sewage Index:", round(sewage_2016$urb_nuts, 4), "<br>"))}
-        else {
-            proxy %>% clearGroup("Observations")
+        
+        else if (!is.null(input$Other) && input$Other == "LTER Sites") { 
+            proxy %>% 
+                addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
+                             popup = ~site )}
+       
+         else {
+            proxy %>% clearGroup("LTER Sites") %>%  clearGroup("Observations")
         } 
         
-        if (!is.null(input$Other) && input$Other == "LTER Sites") { 
-            proxy %>% addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
-                                   popup = ~site )}
-        else {
-            proxy %>% clearGroup("LTER Sites")
-        } 
+
+
     }, ignoreNULL = F)
     
     
     
     
-    # reactive jan n
-    jan_n <- eventReactive(input$Month, {
+    # reactive jan n %
+  
+    jan_n <- reactive({
         
         spatial_brick[[1]]
     })
     
-
-    # observations and polygons reactive 
     
+    # reactive may n %
+    may_n <- reactive({
+        
+        spatial_brick[[2]]
+    })
+    
+    # reactive july n %
+    july_n <- reactive({
+        
+        spatial_brick[[3]]
+    })
+    
+    # reactive jan n i
+    
+    jan_n_i <- reactive({
+        
+        spatial_brick[[4]]
+    })
+    
+    
+    # reactive may n i
+    may_n_i <- reactive({
+        
+        spatial_brick[[5]]
+    })
+    
+    # reactive july n i
+    july_n_i <- reactive({
+        
+        spatial_brick[[6]]
+    })
+    
+
+    #sync button
+    proxy <- leafletProxy("leaflet_base", session)
+    
+        observeEvent({
+            c(input$Month, input$Variable)},
+            {
+                
+                if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
+                   && input$Variable == "Percent Nitrogen"){
+                    proxy  %>% 
+                        addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                       layerId = "January")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
+                   && input$Variable == "Isotopic Nitrogen"){
+                    proxy  %>% 
+                        addRasterImage(jan_n_i(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                       layerId = "January")
+                }
+                    
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
+                        && input$Variable == "Percent Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "May")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
+                        && input$Variable == "Isotopic Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(may_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "May")
+                }
+                else if (!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July"
+                         && input$Variable == "Percent Nitrogen"){ 
+                    
+                    proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
+                                             layerId = "July")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July" 
+                        && input$Variable == "Isotopic Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(july_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "July")
+                }
+                
+                
+                else {
+                    proxy %>%  clearImages()
+                }
+            }, ignoreNULL = F)               
+   
+    # reactive coral belach
+    bleach <- reactive({
+        
+        spatial_brick[[7]]
+    })
+
+    # reactive sewage
+    sewage <- reactive({
+        
+        spatial_brick[[8]]
+    })
+   
+    # reactive lidar
+    bathy <- reactive({
+        
+        spatial_brick[[9]]
+    })
+    
+    
+    #sync button coral bleach
+    observeEvent({
+        input$Additional},
+        {
+            if(!is.null(input$Additional) && input$Additional == "Percent Coral Bleached" ){
+                
+                proxy  %>% addRasterImage(bleach(), colors = "plasma", group = "Percent Coral Bleached",
+                                          opacity = 0.7, layerId = "Percent Coral Bleached")}
+            else if (!is.null(input$Additional) && input$Additional == "Predicted Sewage" ){
+                
+                proxy  %>% addRasterImage(sewage(), colors = "plasma", group = "Predicted Sewage",
+                                          opacity = 0.7, layerId = "Predicted Sewage")}
+            else if (!is.null(input$Additional) && input$Additional == "Bathymetry" ){
+                
+                proxy  %>% addRasterImage(bathy(), colors = "plasma", group = "Bathymetry",
+                                          opacity = 0.7, layerId = "Bathymetry")}
+            
+            else {
+                proxy %>% clearImages()
+            }
+        }, ignoreNULL = F)
+    
+
 }
 
 # Run the application 

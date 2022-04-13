@@ -430,8 +430,10 @@ bathy_sf_filtered <- st_as_sf(bathy_bind, coords = c("long","lat")) %>%
 bathy_points_filtered <- as(bathy_sf_filtered, "Spatial") 
 
 # Generate empty raster layer and rasterize points
-bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext = extent(bathy_sf_filtered)) %>% 
-  rasterize(bathy_points_filtered, ., field = bathy_points_filtered$depth)
+bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext = extent(sewage_ras)) %>% 
+  rasterize(bathy_points_filtered, ., field = bathy_points_filtered$depth) %>% 
+  projectRaster(sewage_ras, method = "bilinear")
+
 
 
 ```
@@ -439,10 +441,9 @@ bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext =
 # Create Raster Brick of Spatial layers
 ```{r}
 
-spatial_brick <- brick(jan_ras, may_ras, july_ras, jan_ras_i, may_ras_i, july_ras_i, bleach_raster, sewage_ras)
+spatial_brick <- brick(jan_ras, may_ras, july_ras, jan_ras_i, may_ras_i, july_ras_i, bleach_raster, sewage_ras, bathy_raster_filtered)
 
-writeRaster(spatial_brick, here("data", "spatial_brick.nc"), format = "CDF")
-
+writeRaster(spatial_brick, here("data", "spatial_brick.nc"), format = "CDF", overwrite = T)
 ```
 
 
