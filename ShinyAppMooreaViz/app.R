@@ -12,8 +12,6 @@ library(shiny)
 library(leaflet)
 library(tidyverse)
 library(shinyWidgets)
-
-### not sure if we need all of these, they are from the layers.Rmd
 library(here)
 library(janitor)
 library(raster)
@@ -44,46 +42,49 @@ bleach <- read_csv(here("data", "csv", "percent_bleach_2016.csv")) %>%
 site_poly <- read_csv(here("data", "csv", "site_poly.csv"))
 
 #sewage data
-
 sewage_data <- read.csv(here("data/csv/Predicted_nuts.csv")) %>% 
     clean_names()
 
 sewage_data <- cbind(nitrogen_data, sewage_data)
 
-
-temporal_data <- read.csv(here("data/csv/temporal_data_joined.csv"))
-
-
-#sewage
 sewage_2016 <- sewage_data %>% 
     dplyr::select(longitude, latitude, urb_nuts) %>% 
     na.omit()
+
+#temporal data 
+temporal_data <- read.csv(here("data/csv/temporal_data_joined.csv"))
+
 #Select column bleach
 bleaching_data <- bleach %>%
     dplyr::select(longitude, latitude, percent_bleached) %>%
     na.omit() %>% 
     group_by(longitude, latitude) %>% 
     summarise(percent_bleached = mean(percent_bleached))
+
 # selecting n-july data
 july_ni_data <- n_data %>% 
     filter(date == "july", method == "d15n") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-may data
 may_ni_data <- n_data %>% 
     filter(date == "may", method == "d15n") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-jan data
 jan_ni_data <- n_data %>% 
     filter(date == "jan", method == "d15n") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-july data
 july_np_data <- n_data %>% 
     filter(date == "july", method == "percent") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-may data
 may_np_data <- n_data %>% 
     filter(date == "may", method == "percent") %>%
@@ -95,7 +96,6 @@ jan_np_data <- n_data %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
 
-
 #raster brick minus lidar
 spatial_brick <- here("data", "spatial_brick.nc")
 
@@ -103,7 +103,6 @@ spatial_brick <- brick(spatial_brick)
 
 #crs 
 crs <- 2976
-
 
 # Tidy Nitrogen Data
 n_data <- nitrogen_data %>% 
@@ -126,7 +125,6 @@ july_data <- as.data.frame(rasterToPoints(spatial_brick[[3]]))
 pal_july <- colorNumeric(palette = viridis((25), option = "plasma"), domain = july_data$var1.pred, reverse = TRUE)
 
 # isotopic nitrogen 
-
 jan_i_data <- as.data.frame(rasterToPoints(spatial_brick[[4]]))
 pal_jan_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_i_data$var1.pred, reverse = TRUE)
 
@@ -154,20 +152,25 @@ pal_sewage <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 
 ui <- fluidPage(
 
-    # Application title
+    # Application title ----
     titlePanel("Moorea Coral Reef LTER"),
     sidebarLayout(
         sidebarPanel(),
         mainPanel(img(src = "mcr_logo.png", height = 60, width = 150, align = "right"), 
                   img(src = "lter_logo.png", height = 60, width = 70, align = "right"), 
                   img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
-
+    
+# Navigatition bar ----
     navbarPage("App Title", 
+               
+               #home page ---- 
                tabPanel("Home"),
+               
+               #spatial page ----
                navbarMenu("Spatial",
+                          
+                          #spatial map ----
                           tabPanel(title = "Map",
-                                   
-                                   #----
                                    #leaflet map inputs
                                    
                                    sidebarPanel(width = 2,
@@ -207,10 +210,13 @@ ui <- fluidPage(
                           
                           
                         
-                          
+                          #spatila metadata ----
                           tabPanel("Metadata")), 
                
+               #Temporal page ----
                navbarMenu("Temporal",
+                          
+                          #figures by variable panel ----
                           tabPanel("Figures by Variable",
                                    (pickerInput(inputId = "Variable",
                                                label = "Select a Variable",
@@ -221,7 +227,7 @@ ui <- fluidPage(
                                                multiple = FALSE)),
                                    plotOutput(outputId = "faceted_plot")),
                                    
-                                   
+                          #figures by site panel ----        
                           tabPanel("Figures by Site",
                                    sidebarPanel(checkboxGroupInput(inputId = "site", 
                                                                    label = h4("Choose your Site"),
@@ -233,10 +239,9 @@ ui <- fluidPage(
                                                                      "Site 5" = "LTER 5", 
                                                                      "Site 6" = "LTER 6"))),
                                    mainPanel(plotOutput(outputId = "variables_by_site_plot"))),
-                          
+                          #temporal metadata ----
                           tabPanel("Metadata")), 
                           
-                          tabPanel("Data")
     )
 )
 
@@ -251,6 +256,7 @@ cots_facet <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
 
+    #leaflet outputs ----
     output$leaflet_base <- renderLeaflet({
         
         #base map
@@ -303,6 +309,7 @@ server <- function(input, output, session) {
 
         })
 
+    #temporal outputs ----
     temporal_reactive_df <- reactive({validate(
         need(length(input$site) > 0, "Please select at least one site to visualize.")
     )
@@ -310,6 +317,7 @@ server <- function(input, output, session) {
             filter(site %in% input$site)
     }) 
     
+    #variables by site outputs ----
     output$variables_by_site_plot <- renderPlot({
         # insert plot here 
         ggplot(na.omit(temporal_reactive_df()), aes(x = year, y = mean_coral_cover)) +
@@ -317,9 +325,11 @@ server <- function(input, output, session) {
             geom_line(aes(group = site, color = site))
     })
    
-    
-    # reactive observations and data filtering
+  
+    # reactive observations and data filtering ----
     Observations <- reactive({
+
+ 
         
         n_data %>% 
             dplyr::select(latitude, longitude)
