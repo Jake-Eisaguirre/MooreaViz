@@ -430,8 +430,10 @@ bathy_sf_filtered <- st_as_sf(bathy_bind, coords = c("long","lat")) %>%
 bathy_points_filtered <- as(bathy_sf_filtered, "Spatial") 
 
 # Generate empty raster layer and rasterize points
-bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext = extent(bathy_sf_filtered)) %>% 
-  rasterize(bathy_points_filtered, ., field = bathy_points_filtered$depth)
+bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext = extent(sewage_ras)) %>% 
+  rasterize(bathy_points_filtered, ., field = bathy_points_filtered$depth) %>% 
+  projectRaster(sewage_ras, method = "bilinear")
+
 
 
 ```
@@ -439,10 +441,9 @@ bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext =
 # Create Raster Brick of Spatial layers
 ```{r}
 
-spatial_brick <- brick(jan_ras, may_ras, july_ras, jan_ras_i, may_ras_i, july_ras_i, bleach_raster, sewage_ras)
+spatial_brick <- brick(jan_ras, may_ras, july_ras, jan_ras_i, may_ras_i, july_ras_i, bleach_raster, sewage_ras, bathy_raster_filtered)
 
-writeRaster(spatial_brick, here("data", "spatial_brick.nc"), format = "CDF")
-
+writeRaster(spatial_brick, here("data", "spatial_brick.nc"), format = "CDF", overwrite = T)
 ```
 
 
@@ -453,37 +454,47 @@ In this code chuck we are creating a bounding box for each LTER site and turning
 latitude <- c(-17.47185366, -17.47185366, -17.48641792, -17.48641792, -17.47185366)
 longitude <- c(-149.8455917, -149.829821, -149.829821, -149.8455917, -149.8455917)
 
-lter_1 <- data.frame(longitude, latitude) 
+lter_1 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 1)
 
 
 latitude <- c(-17.46576169, -17.46576169, -17.48131958, -17.48131958, -17.46576169)
 longitude <- c(-149.8116849, -149.7961685, -149.7961685, -149.8116849, -149.8116849)
 
-lter_2 <- data.frame(longitude, latitude)
+lter_2 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 2)
 
 
 latitude <- c(-17.50382025, -17.50382025, -17.52087158, -17.52087158, -17.50382025)
 longitude <- c(-149.7708619, -149.7519968, -149.7519968, -149.7708619, -149.7708619)
 
-lter_3 <- data.frame(longitude, latitude)
+lter_3 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 3)
 
 
 latitude <- c(-17.53305021, -17.53305021, -17.55064263, -17.55064263, -17.53305021)
 longitude <- c(-149.7772857, -149.7566866, -149.7566866, -149.7772857, -149.7772857)
 
-lter_4 <- data.frame(longitude, latitude)
+lter_4 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 4)
 
 
 latitude <- c(-17.56818162, -17.56818162, -17.59182383, -17.59182383, -17.56818162)
 longitude <- c(-149.8869755, -149.8561009, -149.8561009, -149.8869755, -149.8869755)
 
-lter_5 <- data.frame(longitude, latitude)
+lter_5 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 5)
 
 
 latitude <- c(-17.50735955, -17.50735955, -17.52839766, -17.52839766, -17.50735955)
 longitude <- c(-149.934537, -149.9115336, -149.9115336, -149.934537, -149.934537)
 
-lter_6 <- data.frame(longitude, latitude)
+lter_6 <- data.frame(longitude, latitude) %>% 
+  mutate(site = 6)
+
+site_poly <- rbind(lter_1, lter_2, lter_3, lter_4, lter_5, lter_6)
+
+write_csv(site_poly, here("data", "csv", "site_poly.csv"))
 
 ```
 
