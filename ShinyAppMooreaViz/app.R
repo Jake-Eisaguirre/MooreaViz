@@ -12,8 +12,6 @@ library(shiny)
 library(leaflet)
 library(tidyverse)
 library(shinyWidgets)
-
-### not sure if we need all of these, they are from the layers.Rmd
 library(here)
 library(janitor)
 library(raster)
@@ -44,20 +42,18 @@ bleach <- read_csv(here("data", "csv", "percent_bleach_2016.csv")) %>%
 site_poly <- read_csv(here("data", "csv", "site_poly.csv"))
 
 #sewage data
-
 sewage_data <- read.csv(here("data/csv/Predicted_nuts.csv")) %>% 
     clean_names()
 
 sewage_data <- cbind(nitrogen_data, sewage_data)
 
-
-temporal_data <- read.csv(here("data/csv/temporal_data_joined.csv"))
-
-
-#sewage
 sewage_2016 <- sewage_data %>% 
     dplyr::select(longitude, latitude, urb_nuts) %>% 
     na.omit()
+
+#temporal data 
+temporal_data <- read.csv(here("data/csv/temporal_data_joined.csv"))
+
 #Select column bleach
 bleaching_data <- bleach %>%
     dplyr::select(longitude, latitude, percent_bleached) %>%
@@ -65,7 +61,7 @@ bleaching_data <- bleach %>%
     group_by(longitude, latitude) %>% 
     summarise(percent_bleached = mean(percent_bleached))
 
-# Tidy Nitrogen Data
+#Tidy Nitrogen Data
 n_data <- nitrogen_data %>% 
     mutate(percent_n_jan = percent_n_jan *100,
            percent_n_may = percent_n_may *100,
@@ -79,21 +75,25 @@ july_ni_data <- n_data %>%
     filter(date == "july", method == "d15n") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-may data
 may_ni_data <- n_data %>% 
     filter(date == "may", method == "d15n") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-jan data
 jan_ni_data <- n_data %>% 
     filter(date == "jan", method == "d15n") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-july data
 july_np_data <- n_data %>% 
     filter(date == "july", method == "percent") %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
+
 # selecting n-may data
 may_np_data <- n_data %>% 
     filter(date == "may", method == "percent") %>%
@@ -105,7 +105,6 @@ jan_np_data <- n_data %>%
     dplyr::select(longitude, latitude, percent_n) %>% 
     na.omit()
 
-
 #raster brick minus lidar
 spatial_brick <- here("data", "spatial_brick.nc")
 
@@ -113,7 +112,6 @@ spatial_brick <- brick(spatial_brick)
 
 #crs 
 crs <- 2976
-
 
 # Tidy Nitrogen Data
 # n_data <- nitrogen_data %>% 
@@ -136,7 +134,6 @@ july_data <- as.data.frame(rasterToPoints(spatial_brick[[3]]))
 pal_july <- colorNumeric(palette = viridis((25), option = "plasma"), domain = july_data$var1.pred, reverse = TRUE)
 
 # isotopic nitrogen 
-
 jan_i_data <- as.data.frame(rasterToPoints(spatial_brick[[4]]))
 pal_jan_i <- colorNumeric(palette = viridis((25), option = "plasma"), domain = jan_i_data$var1.pred, reverse = TRUE)
 
@@ -164,20 +161,25 @@ pal_sewage <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 
 ui <- fluidPage(
 
-    # Application title
+    # Application title ----
     titlePanel("Moorea Coral Reef LTER"),
     sidebarLayout(
         sidebarPanel(),
         mainPanel(img(src = "mcr_logo.png", height = 60, width = 150, align = "right"), 
                   img(src = "lter_logo.png", height = 60, width = 70, align = "right"), 
                   img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
-
+    
+# Navigatition bar ----
     navbarPage("App Title", 
+               
+               #home page ---- 
                tabPanel("Home"),
+               
+               #spatial page ----
                navbarMenu("Spatial",
+                          
+                          #spatial map ----
                           tabPanel(title = "Map",
-                                   
-                                   #----
                                    #leaflet map inputs
                                    
                                    sidebarPanel(width = 2,
@@ -189,22 +191,24 @@ ui <- fluidPage(
                                                                #"2018"),
                                                    #multiple = FALSE,
                                                    #width = 80),
-                                   shinyWidgets::pickerInput(inputId = "Month",
+                                       checkboxGroupButtons(inputId = "Month",
                                                              label = "Select a Month:",
                                                              choices = c("January", 
-                                                                         "July", 
-                                                                         "May"),
-                                                             multiple = FALSE,
+                                                                         "May", 
+                                                                         "July"),
                                                              width = 80), 
-                                   shinyWidgets::pickerInput(inputId = "Variable",
+                                       checkboxGroupButtons(inputId = "Variable",
                                                              label = "Select a Variable:",
-                                                             choices = c("Nitrogen", 
-                                                                         "Isotopic Nitrogen", 
-                                                                         "Coral Bleaching", 
-                                                                         "Predicted Sewage"),
-                                                             multiple = FALSE,
+                                                             choices = c("Percent Nitrogen", 
+                                                                         "Isotopic Nitrogen"),
                                                              width = 80), 
-                                   checkboxGroupInput(inputId = "Other",
+                                       checkboxGroupButtons(inputId = "Additional",
+                                                            label = "Select Aditional Layer",
+                                                            choices = c("Percent Coral Bleached", 
+                                                                        "Predicted Sewage",
+                                                                        "Bathymetry"),
+                                                            width = 80),
+                                       checkboxGroupButtons(inputId = "Other",
                                                              label = "Select an Add on:",
                                                              choices = c("LTER Sites", 
                                                                          "Observations"),
@@ -215,10 +219,13 @@ ui <- fluidPage(
                           
                           
                         
-                          
+                          #spatila metadata ----
                           tabPanel("Metadata")), 
                
+               #Temporal page ----
                navbarMenu("Temporal",
+                          
+                          #figures by variable panel ----
                           tabPanel("Figures by Variable",
                                    (pickerInput(inputId = "Temp_Variable",
                                                label = "Select a Variable",
@@ -233,7 +240,7 @@ ui <- fluidPage(
                                                multiple = FALSE)),
                                    plotOutput(outputId = "faceted_plot")),
                                    
-                                   
+                          #figures by site panel ----        
                           tabPanel("Figures by Site",
                                    sidebarPanel(checkboxGroupInput(inputId = "site", 
                                                                    label = h4("Choose your Site"),
@@ -245,10 +252,9 @@ ui <- fluidPage(
                                                                      "Site 5" = "LTER 5", 
                                                                      "Site 6" = "LTER 6"))),
                                    mainPanel(plotOutput(outputId = "variables_by_site_plot"))),
-                          
+                          #temporal metadata ----
                           tabPanel("Metadata")), 
                           
-                          tabPanel("Data")
     )
 )
 
@@ -260,6 +266,7 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
 
+    #leaflet outputs ----
     output$leaflet_base <- renderLeaflet({
         
         #base map
@@ -336,7 +343,8 @@ server <- function(input, output, session) {
 
  #       })
 
-    
+
+    #temporal outputs ----
     temporal_reactive_df <- reactive({validate(
         need(length(input$site) > 0, "Please select at least one site to visualize.")
     )
@@ -344,10 +352,13 @@ server <- function(input, output, session) {
             filter(site %in% input$site)
     }) 
     
-    
+
+    #variables by site outputs ----
+
     output$variables_by_site_plot <- renderPlot({
         coral_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_coral_cover)) +
             geom_point(aes(color = site)) +
+
             geom_line(aes(group = site, color = site)) +
             labs(x = "",
                  y = expression(atop("Mean Coral Cover", paste(paste("(% per 0.25 ", m^{2}, ")"))))) 
@@ -377,6 +388,16 @@ server <- function(input, output, session) {
     
     # reactive observations and data filtering
     Observations <- eventReactive(input$Other, {
+
+            geom_line(aes(group = site, color = site))
+    })
+   
+  
+    # reactive observations and data filtering ----
+    Observations <- reactive({
+
+ 
+
         
         n_data %>% 
             dplyr::select(latitude, longitude)
@@ -384,7 +405,7 @@ server <- function(input, output, session) {
     
     
     # reactive polygons and data filtering
-    polgyons <- eventReactive(input$Other, {
+    polgyons <- reactive({
         
         site_poly %>% 
             group_by(site)
@@ -407,30 +428,160 @@ server <- function(input, output, session) {
                                                "July Isotopic N:", july_ni_data$percent_n,"δ15N", "<br>",
                                                "Percent Coral Bleached:", round(bleaching_data$percent_bleached, 2),"%", "<br>",
                                                "Predicted Sewage Index:", round(sewage_2016$urb_nuts, 4), "<br>"))}
-        else {
-            proxy %>% clearGroup("Observations")
+        
+        else if (!is.null(input$Other) && input$Other == "LTER Sites") { 
+            proxy %>% 
+                addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
+                             popup = ~site )}
+       
+         else {
+            proxy %>% clearGroup("LTER Sites") %>%  clearGroup("Observations")
         } 
         
-        if (!is.null(input$Other) && input$Other == "LTER Sites") { 
-            proxy %>% addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
-                                   popup = ~site )}
-        else {
-            proxy %>% clearGroup("LTER Sites")
-        } 
+
+
     }, ignoreNULL = F)
     
     
     
     
-    # reactive jan n
-    jan_n <- eventReactive(input$Month, {
+    # reactive jan n %
+  
+    jan_n <- reactive({
         
         spatial_brick[[1]]
     })
     
-
-    # observations and polygons reactive 
     
+    # reactive may n %
+    may_n <- reactive({
+        
+        spatial_brick[[2]]
+    })
+    
+    # reactive july n %
+    july_n <- reactive({
+        
+        spatial_brick[[3]]
+    })
+    
+    # reactive jan n i
+    
+    jan_n_i <- reactive({
+        
+        spatial_brick[[4]]
+    })
+    
+    
+    # reactive may n i
+    may_n_i <- reactive({
+        
+        spatial_brick[[5]]
+    })
+    
+    # reactive july n i
+    july_n_i <- reactive({
+        
+        spatial_brick[[6]]
+    })
+    
+
+    #sync button
+    proxy <- leafletProxy("leaflet_base", session)
+    
+        observeEvent({
+            c(input$Month, input$Variable)},
+            {
+                
+                if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
+                   && input$Variable == "Percent Nitrogen"){
+                    proxy  %>% 
+                        addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                       layerId = "January")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
+                   && input$Variable == "Isotopic Nitrogen"){
+                    proxy  %>% 
+                        addRasterImage(jan_n_i(), colors = "plasma", group = "January N", opacity = 0.7, 
+                                       layerId = "January")
+                }
+                    
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
+                        && input$Variable == "Percent Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "May")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
+                        && input$Variable == "Isotopic Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(may_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "May")
+                }
+                else if (!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July"
+                         && input$Variable == "Percent Nitrogen"){ 
+                    
+                    proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
+                                             layerId = "July")
+                }
+                
+                else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July" 
+                        && input$Variable == "Isotopic Nitrogen"){
+                    proxy %>% 
+                        addRasterImage(july_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
+                                       layerId = "July")
+                }
+                
+                
+                else {
+                    proxy %>%  clearImages()
+                }
+            }, ignoreNULL = F)               
+   
+    # reactive coral belach
+    bleach <- reactive({
+        
+        spatial_brick[[7]]
+    })
+
+    # reactive sewage
+    sewage <- reactive({
+        
+        spatial_brick[[8]]
+    })
+   
+    # reactive lidar
+    bathy <- reactive({
+        
+        spatial_brick[[9]]
+    })
+    
+    
+    #sync button coral bleach
+    observeEvent({
+        input$Additional},
+        {
+            if(!is.null(input$Additional) && input$Additional == "Percent Coral Bleached" ){
+                
+                proxy  %>% addRasterImage(bleach(), colors = "plasma", group = "Percent Coral Bleached",
+                                          opacity = 0.7, layerId = "Percent Coral Bleached")}
+            else if (!is.null(input$Additional) && input$Additional == "Predicted Sewage" ){
+                
+                proxy  %>% addRasterImage(sewage(), colors = "plasma", group = "Predicted Sewage",
+                                          opacity = 0.7, layerId = "Predicted Sewage")}
+            else if (!is.null(input$Additional) && input$Additional == "Bathymetry" ){
+                
+                proxy  %>% addRasterImage(bathy(), colors = "plasma", group = "Bathymetry",
+                                          opacity = 0.7, layerId = "Bathymetry")}
+            
+            else {
+                proxy %>% clearImages()
+            }
+        }, ignoreNULL = F)
+    
+
 }
 
 # Run the application 
