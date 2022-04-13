@@ -249,41 +249,42 @@ server <- function(input, output, session) {
       
       if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
          && input$Variable == "Percent Nitrogen"){
-        proxy  %>% 
+        proxy  %>%  clearImages() %>%
           addRasterImage(jan_n(), colors = "plasma", group = "January N", opacity = 0.7, 
                          layerId = "January")
       }
       
       else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
               && input$Variable == "Isotopic Nitrogen"){
-        proxy  %>% 
+        proxy  %>% clearImages() %>% 
           addRasterImage(jan_n_i(), colors = "plasma", group = "January N", opacity = 0.7, 
                          layerId = "January")
       }
       
       else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
               && input$Variable == "Percent Nitrogen"){
-        proxy %>% 
+        proxy %>% clearImages() %>% 
           addRasterImage(may_n(), colors = "plasma", group = "May N", opacity = 0.7, 
                          layerId = "May")
       }
       
       else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "May" 
               && input$Variable == "Isotopic Nitrogen"){
-        proxy %>% 
+        proxy %>% clearImages() %>% 
           addRasterImage(may_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
                          layerId = "May")
       }
       else if (!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July"
                && input$Variable == "Percent Nitrogen"){ 
         
-        proxy %>% addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
+        proxy %>% clearImages() %>% 
+          addRasterImage(july_n(), colors = "plasma", group = "July N", opacity = 0.7, 
                                  layerId = "July")
       }
       
       else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "July" 
               && input$Variable == "Isotopic Nitrogen"){
-        proxy %>% 
+        proxy %>% clearImages() %>% 
           addRasterImage(july_n_i(), colors = "plasma", group = "May N", opacity = 0.7, 
                          layerId = "July")
       }
@@ -292,7 +293,17 @@ server <- function(input, output, session) {
       else {
         proxy %>%  clearImages()
       }
-    }, ignoreNULL = F)               
+    }, ignoreNULL = F)           
+  
+  
+  #clear button
+  observeEvent({input$Clear},
+      
+      if(!is.null(input$Clear) &&  input$Clear == "Clear"){
+        proxy %>% clearImages()
+    
+    }, ignoreNULL = F)  
+  
   
   # reactive coral belach
   bleach <- reactive({
@@ -319,15 +330,15 @@ server <- function(input, output, session) {
     {
       if(!is.null(input$Additional) && input$Additional == "Percent Coral Bleached" ){
         
-        proxy  %>% addRasterImage(bleach(), colors = "plasma", group = "Percent Coral Bleached",
+        proxy  %>% clearImages() %>%  addRasterImage(bleach(), colors = "plasma", group = "Percent Coral Bleached",
                                   opacity = 0.7, layerId = "Percent Coral Bleached")}
       else if (!is.null(input$Additional) && input$Additional == "Predicted Sewage" ){
         
-        proxy  %>% addRasterImage(sewage(), colors = "plasma", group = "Predicted Sewage",
+        proxy  %>% clearImages() %>% addRasterImage(sewage(), colors = "plasma", group = "Predicted Sewage",
                                   opacity = 0.7, layerId = "Predicted Sewage")}
       else if (!is.null(input$Additional) && input$Additional == "Bathymetry" ){
         
-        proxy  %>% addRasterImage(bathy(), colors = "plasma", group = "Bathymetry",
+        proxy  %>% clearImages() %>% addRasterImage(bathy(), colors = "plasma", group = "Bathymetry",
                                   opacity = 0.7, layerId = "Bathymetry")}
       
       else {
