@@ -61,6 +61,15 @@ bleaching_data <- bleach %>%
     group_by(longitude, latitude) %>% 
     summarise(percent_bleached = mean(percent_bleached))
 
+#Tidy Nitrogen Data
+n_data <- nitrogen_data %>% 
+    mutate(percent_n_jan = percent_n_jan *100,
+           percent_n_may = percent_n_may *100,
+           percent_n_july = percent_n_july *100) %>% #turning them into %s 
+    pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
+    separate(type, into = c("method","random", "date"), sep = "_") %>% 
+    dplyr::select(-random)
+
 # selecting n-july data
 july_ni_data <- n_data %>% 
     filter(date == "july", method == "d15n") %>%
@@ -105,13 +114,13 @@ spatial_brick <- brick(spatial_brick)
 crs <- 2976
 
 # Tidy Nitrogen Data
-n_data <- nitrogen_data %>% 
-    mutate(percent_n_jan = percent_n_jan *100,
-           percent_n_may = percent_n_may *100,
-           percent_n_july = percent_n_july *100) %>% #turning them into %s 
-    pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
-    separate(type, into = c("method","random", "date"), sep = "_") %>% 
-    dplyr::select(-random)
+# n_data <- nitrogen_data %>% 
+#     mutate(percent_n_jan = percent_n_jan *100,
+#            percent_n_may = percent_n_may *100,
+#            percent_n_july = percent_n_july *100) %>% #turning them into %s 
+#     pivot_longer(!1:5, names_to = "type", values_to = "percent_n") %>% 
+#     separate(type, into = c("method","random", "date"), sep = "_") %>% 
+#     dplyr::select(-random)
 
 #Pals
 # percent nitrogen 
@@ -218,12 +227,16 @@ ui <- fluidPage(
                           
                           #figures by variable panel ----
                           tabPanel("Figures by Variable",
-                                   (pickerInput(inputId = "Variable",
+                                   (pickerInput(inputId = "Temp_Variable",
                                                label = "Select a Variable",
-                                               choices = c("Crown of Thorns", 
-                                                           "Coral Cover", 
-                                                           "Fish Biomass", 
-                                                           "Algae"),
+                                               # choices = c("Crown of Thorns", 
+                                               #             "Coral Cover", 
+                                               #             "Fish Biomass", 
+                                               #             "Algae"),
+                                               choices = c("Mean Coral Cover" = "mean_coral_cover",
+                                                           "Mean Algae Cover" = "mean_algae_cover",
+                                                           "Mean Fish Biomass" = "mean_biomass_p_consumers",
+                                                           "COTS Density" = "cots_density"), 
                                                multiple = FALSE)),
                                    plotOutput(outputId = "faceted_plot")),
                                    
@@ -245,10 +258,7 @@ ui <- fluidPage(
     )
 )
 
-# plots 
-# faceted COTS plot
-cots_facet <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
-    geom_point(aes(color = site)) # testing with basic plot
+
 
 
 # Server ----
@@ -266,62 +276,119 @@ server <- function(input, output, session) {
             
     })
     
-
+    # temporal_reactive_df_variables <- reactive({
+    #     
+    #     temporal_data %>% 
+    #         dplyr::select(year, site, input$Variable)
+    # }) 
+    
     output$faceted_plot <- renderPlot({
-        ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
-            geom_point(aes(color = site)) +
-            geom_line(aes(group = site, color = site)) +
-            facet_wrap(~site) +
-            labs(title = 'Crown of Thorns Sea Stars - Annual Site Densities',
-                 subtitle = 'Moorea, French Polynesia (2005 - 2018)',
-                 y = 'Density (count/m^2)',
-                 x = 'Year',
-                 color = 'Site') +
-            scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
-            theme_bw() +
-            theme(axis.text.x = element_text(angle = 90, hjust = 1),
-                  panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
-                  panel.grid.minor.y = element_blank(),
-                  axis.title.x = element_text(size=14),
-                  axis.title.y = element_text(size = 14),
-                  plot.title = element_text(size = 16))
-        
+        ggplot(data = temporal_data, aes_string(x = "year", y = input$Temp_Variable)) +
+            geom_point(aes(color = site)) # +
+            # geom_line(aes(group = site, color = site)) # +
+            # facet_wrap(~site) +
+            # labs(title = 'INSERT TITLE',
+            #      subtitle = 'Moorea, French Polynesia (2005 - 2018)',
+            #      y = 'Density (count/m^2)',
+            #      x = 'Year',
+            #      color = 'Site') +
+            # scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+            # theme_bw() +
+            # theme(axis.text.x = element_text(angle = 90, hjust = 1),
+            #       panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+            #       panel.grid.minor.y = element_blank(),
+            #       axis.title.x = element_text(size=14),
+            #       axis.title.y = element_text(size = 14),
+            #       plot.title = element_text(size = 16))
+        })
+
+
+    # output$faceted_plot <- renderPlot({
+    #     ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
+    #         geom_point(aes(color = site)) +
+    #         geom_line(aes(group = site, color = site)) +
+    #         facet_wrap(~site) +
+    #         labs(title = 'Crown of Thorns Sea Stars - Annual Site Densities',
+    #              subtitle = 'Moorea, French Polynesia (2005 - 2018)',
+    #              y = 'Density (count/m^2)',
+    #              x = 'Year',
+    #              color = 'Site') +
+    #         scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+    #         theme_bw() +
+    #         theme(axis.text.x = element_text(angle = 90, hjust = 1),
+    #               panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+    #               panel.grid.minor.y = element_blank(),
+    #               axis.title.x = element_text(size=14),
+    #               axis.title.y = element_text(size = 14),
+    #               plot.title = element_text(size = 16))
+    #     
         
         # # NOT SURE WHY THE BELOW IF STATEMENTS DO NOT WORK TO SWITCH THE PLOTS BASED ON INPUT
         # if (input$Variable == "Crown of Thorns"){
         #     p <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
         #         geom_point(aes(color = site))
-        #     }
-        # if (input$Variable == "Coral Cover"){
+        # } else if (input$Variable == "Coral Cover"){
         #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_coral_cover)) +
         #         geom_point(aes(color = site))
-        # }
-        # if (input$Variable == "Fish Biomass"){
+        # } else if (input$Variable == "Fish Biomass"){
         #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
         #         geom_point(aes(color = site))
         # }
-        # if (input$Variable == "Algae"){
+        # else (input$Variable == "Algae"){
         #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
         #         geom_point(aes(color = site))
         # }
         # 
         # print(p)
 
-        })
+ #       })
+
 
     #temporal outputs ----
     temporal_reactive_df <- reactive({validate(
         need(length(input$site) > 0, "Please select at least one site to visualize.")
     )
-        temporal_data %>% 
+        temporal_data %>%
             filter(site %in% input$site)
     }) 
     
+
     #variables by site outputs ----
+
     output$variables_by_site_plot <- renderPlot({
-        # insert plot here 
-        ggplot(na.omit(temporal_reactive_df()), aes(x = year, y = mean_coral_cover)) +
+        coral_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_coral_cover)) +
             geom_point(aes(color = site)) +
+
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "",
+                 y = expression(atop("Mean Coral Cover", paste(paste("(% per 0.25 ", m^{2}, ")"))))) 
+        
+        cots_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = cots_density)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "",
+                 y = expression(atop("COTS Density", paste(paste("(Count per ", m^{2}, ")")))))
+        
+        biomass_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_biomass_p_consumers)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "",
+                 y = expression(atop("Mean Fish Biomass", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+        
+        algae_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_algae_cover)) +
+            geom_point(aes(color = site)) +
+            geom_line(aes(group = site, color = site)) +
+            labs(x = "Year",
+                 y = expression(atop("Mean Algae Cover", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+        
+        coral_plot/cots_plot/biomass_plot/algae_plot +
+            plot_layout(guides = 'collect') # combines the legends 
+            # plot_layout(heights = unit(c(3.5, 3.5, 3.5, 3.5), c('cm', 'null'))) 
+        })
+    
+    # reactive observations and data filtering
+    Observations <- eventReactive(input$Other, {
+
             geom_line(aes(group = site, color = site))
     })
    
@@ -330,6 +397,7 @@ server <- function(input, output, session) {
     Observations <- reactive({
 
  
+
         
         n_data %>% 
             dplyr::select(latitude, longitude)
