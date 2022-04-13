@@ -17,6 +17,8 @@ library(ggvoronoi)
 library(car)
 library(dismo)
 library(spatstat)
+library(ggplot2)
+library(patchwork)
 
 # Load Data ----
 

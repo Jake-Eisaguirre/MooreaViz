@@ -38,65 +38,29 @@ server <- function(input, output, session) {
   
   output$faceted_plot <- renderPlot({
     ggplot(data = temporal_data, aes_string(x = "year", y = input$Temp_Variable)) +
-      geom_point(aes(color = site)) # +
-    # geom_line(aes(group = site, color = site)) # +
-    # facet_wrap(~site) +
-    # labs(title = 'INSERT TITLE',
-    #      subtitle = 'Moorea, French Polynesia (2005 - 2018)',
-    #      y = 'Density (count/m^2)',
-    #      x = 'Year',
-    #      color = 'Site') +
-    # scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
-    # theme_bw() +
-    # theme(axis.text.x = element_text(angle = 90, hjust = 1),
-    #       panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
-    #       panel.grid.minor.y = element_blank(),
-    #       axis.title.x = element_text(size=14),
-    #       axis.title.y = element_text(size = 14),
-    #       plot.title = element_text(size = 16))
+      geom_point(aes(color = site)) +
+      geom_line(aes(group = site, color = site)) +
+      facet_wrap(~site) +
+    labs(title = 'INSERT TITLE',
+         subtitle = 'Moorea, French Polynesia (2005 - 2018)',
+         # y = 'Density (count/m^2)', # use case_when() to designate label based on user input of variable?
+         y = case_when(input$Temp_Variable == "mean_coral_cover" ~ "coral axis",
+                       input$Temp_Variable == "mean_algae_cover" ~ "algae axis",
+                       input$Temp_Variable == "mean_biomass_p_consumers" ~ "fish axis",
+                       input$Temp_Variable == "cots_density" ~ "cots axis"),
+         x = 'Year',
+         color = 'Site') +
+    scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),
+          panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          axis.title.x = element_text(size=14),
+          axis.title.y = element_text(size = 14),
+          plot.title = element_text(size = 16))
   })
   
-  
-  # output$faceted_plot <- renderPlot({
-  #     ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
-  #         geom_point(aes(color = site)) +
-  #         geom_line(aes(group = site, color = site)) +
-  #         facet_wrap(~site) +
-  #         labs(title = 'Crown of Thorns Sea Stars - Annual Site Densities',
-  #              subtitle = 'Moorea, French Polynesia (2005 - 2018)',
-  #              y = 'Density (count/m^2)',
-  #              x = 'Year',
-  #              color = 'Site') +
-  #         scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
-  #         theme_bw() +
-  #         theme(axis.text.x = element_text(angle = 90, hjust = 1),
-  #               panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(),
-  #               panel.grid.minor.y = element_blank(),
-  #               axis.title.x = element_text(size=14),
-  #               axis.title.y = element_text(size = 14),
-  #               plot.title = element_text(size = 16))
-  #     
-  
-  # # NOT SURE WHY THE BELOW IF STATEMENTS DO NOT WORK TO SWITCH THE PLOTS BASED ON INPUT
-  # if (input$Variable == "Crown of Thorns"){
-  #     p <- ggplot(data = temporal_data, aes(x = year, y = cots_density)) +
-  #         geom_point(aes(color = site))
-  # } else if (input$Variable == "Coral Cover"){
-  #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_coral_cover)) +
-  #         geom_point(aes(color = site))
-  # } else if (input$Variable == "Fish Biomass"){
-  #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_biomass_p_consumers)) +
-  #         geom_point(aes(color = site))
-  # }
-  # else (input$Variable == "Algae"){
-  #     p <- ggplot(data = temporal_data, aes(x = year, y = mean_algae_cover)) +
-  #         geom_point(aes(color = site))
-  # }
-  # 
-  # print(p)
-  
-  #       })
-  
+
   
   #temporal outputs ----
   temporal_reactive_df <- reactive({validate(
@@ -112,7 +76,6 @@ server <- function(input, output, session) {
   output$variables_by_site_plot <- renderPlot({
     coral_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_coral_cover)) +
       geom_point(aes(color = site)) +
-      
       geom_line(aes(group = site, color = site)) +
       labs(x = "",
            y = expression(atop("Mean Coral Cover", paste(paste("(% per 0.25 ", m^{2}, ")"))))) 
@@ -133,12 +96,15 @@ server <- function(input, output, session) {
       geom_point(aes(color = site)) +
       geom_line(aes(group = site, color = site)) +
       labs(x = "Year",
-           y = expression(atop("Mean Algae Cover", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+           y = expression(atop("Mean Algae Cover", paste(paste("(% per 0.25 ", m^{2}, ")"))))) 
+      
     
     coral_plot/cots_plot/biomass_plot/algae_plot +
-      plot_layout(guides = 'collect') # combines the legends 
-    # plot_layout(heights = unit(c(3.5, 3.5, 3.5, 3.5), c('cm', 'null'))) 
+      plot_layout(guides = 'collect') + # combines the legends
+      plot_layout(ncol = 1, heights = c(1, 1, 1, 1))
   })
+  
+  
   
   # reactive observations and data filtering
   Observations <- eventReactive(input$Other, {
