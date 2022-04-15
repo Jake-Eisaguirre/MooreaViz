@@ -1,7 +1,5 @@
 source(here("ShinyAppMooreaViz", "global.R"))
 # User Interface ----
-# Creates the structure for your app's look and appearance 
-# Define UI for application that draws a histogram
 
 ui <- fluidPage(
   
@@ -14,11 +12,12 @@ ui <- fluidPage(
               img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
   
   # Navigatition bar ----
-  navbarPage("App Title", 
+  navbarPage("", 
              
              #home page ----
-             tabPanel("Home", 
-                      img(src = "mcr_logo.png", height = 60, width = 150, align = "center"), 
+             tabPanel("Home", icon = icon("info-circle"), 
+                      img(src = "MCR60441.jpg", height = 400, width = 400, align = "right"),
+                      
                       p("The Moorea Coral Reef (MCR) LTER site, established in 2004, is an interdisciplinary, landscape-scale program whose goal is to advance understanding of key mechanisms that modulate ecosystem processes and community structure of coral reefs through integrated research, education and outreach. Our site is the coral reef complex that encircles the 60 km perimeter of Moorea (17°30'S, 149°50'W), French Polynesia."), 
                       
                       p("A fundamental goal of the the Moorea Coral Reef (MCR) LTER site is to advance understanding that enables accurate forecasts of the behavior of coral reef ecosystems to environmental forcing. To this end we seek to understand the mechanistic basis of change in coral reefs by: (i) elucidating major controls over reef dynamics, and (ii) determining how they are influenced by the major pulse disturbances (e.g., cyclones, coral bleaching, coral predator outbreaks) and local press drivers (e.g., fishing, nutrient enrichment) to which they are increasingly being subjected, against a background of slowly changing environmental drivers associated with global climate change and ocean acidification.")),
@@ -28,7 +27,7 @@ ui <- fluidPage(
              
              #spatial page ----
              
-             navbarMenu("Spatial",
+             navbarMenu("Spatial", icon = icon("globe-asia"),
                         
                         #spatial map ----
                         tabPanel(title = "Map",
@@ -75,7 +74,7 @@ ui <- fluidPage(
                         tabPanel("Metadata")), 
              
              #Temporal page ----
-             navbarMenu("Temporal",
+             navbarMenu("Temporal", icon = icon("chart-line"),
                         
                         #figures by variable panel ----
                         tabPanel("Figures by Variable",
@@ -104,8 +103,16 @@ ui <- fluidPage(
                                                                                 "Site 5" = "LTER 5", 
                                                                                 "Site 6" = "LTER 6"))),
                                  mainPanel(plotOutput(outputId = "variables_by_site_plot"))),
+                        
                         #temporal metadata ----
-                        tabPanel("Metadata")), 
+                        tabPanel("Metadata"), 
+                        
+                        
+                        "Fish Transects",
+                        p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually. "),
+                        
+                        
+             ) 
              
   )
 )
