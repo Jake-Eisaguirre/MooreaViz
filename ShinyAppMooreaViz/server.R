@@ -158,38 +158,56 @@ server <- function(input, output, session) {
   })
   
   
-  # reactive polygons and data filtering
-  polgyons <- reactive({
+  # reactive polygon_1 and data filtering
+  polgyon_1 <- reactive({
     
-    site_poly %>% 
-      group_by(site)
+    lter_1
+    
   })
   
+  polgyon_2 <- reactive({
+    
+    proxy %>% add
+    
+  })
+  
+  
+  
+
   
   # observations and polygons reactive 
   
   observeEvent(input$Other, {
     proxy <- leafletProxy("leaflet_base")
-    if (!is.null(input$Other) && input$Other == "Observations") { 
-      proxy %>% addCircles(data = Observations(), color = "black", group = "Observations", radius = 3, opacity = 0.2,
-                           popup = paste("Longitude:", round(n_data$longitude, 4), "<br>", 
-                                         "Latitude:", round(n_data$latitude, 4), "<br>",
-                                         "January Percent N:", jan_np_data$percent_n, "%", "<br>",
-                                         "May Percent N:", may_np_data$percent_n,"%", "<br>",
-                                         "July Percent N:", july_np_data$percent_n,"%", "<br>",
-                                         "January Isotopic N:", jan_ni_data$percent_n,"δ15N", "<br>", 
-                                         "May Isotopic N:", may_ni_data$percent_n,"δ15N", "<br>",
-                                         "July Isotopic N:", july_ni_data$percent_n,"δ15N", "<br>",
-                                         "Percent Coral Bleached:", round(bleaching_data$percent_bleached, 2),"%", "<br>",
-                                         "Predicted Sewage Index:", round(sewage_2016$urb_nuts, 4), "<br>"))}
     
-    else if (!is.null(input$Other) && input$Other == "LTER Sites") { 
-      proxy %>% 
-        addPolylines(data = polgyons(), lng = ~longitude, lat = ~latitude, group = "LTER Sites",
-                     popup = ~site )}
     
+    if (!is.null(input$Other) && input$Other == "LTER Sites") { 
+      proxy %>% clearGroup("LTER Sites") %>%
+        addPolygons(data = lter_1, group = "LTER Sites", popup = "LTER Site 1") %>% 
+        addPolygons(data = lter_2, group = "LTER Sites", popup = "LTER Site 2") %>% 
+        addPolygons(data = lter_3, group = "LTER Sites", popup = "LTER Site 3") %>%
+        addPolygons(data = lter_4, group = "LTER Sites", popup = "LTER Site 4") %>% 
+        addPolygons(data = lter_5, group = "LTER Sites", popup = "LTER Site 5") %>% 
+        addPolygons(data = lter_6, group = "LTER Sites", popup = "LTER Site 6")}
+      
+    else if (!is.null(input$Other) && input$Other == "Observations") { 
+      proxy  %>%  clearGroup("Observations") %>% 
+        addCircles(data = Observations(), color = "black", group = "Observations", radius = 3, opacity = 0.2,
+                   popup = paste("Longitude:", round(n_data$longitude, 4), "<br>", 
+                                 "Latitude:", round(n_data$latitude, 4), "<br>",
+                                 "January Percent N:", jan_np_data$percent_n, "%", "<br>",
+                                 "May Percent N:", may_np_data$percent_n,"%", "<br>",
+                                 "July Percent N:", july_np_data$percent_n,"%", "<br>",
+                                 "January Isotopic N:", jan_ni_data$percent_n,"δ15N", "<br>", 
+                                 "May Isotopic N:", may_ni_data$percent_n,"δ15N", "<br>",
+                                 "July Isotopic N:", july_ni_data$percent_n,"δ15N", "<br>",
+                                 "Percent Coral Bleached:", round(bleaching_data$percent_bleached, 2),"%", "<br>",
+                                 "Predicted Sewage Index:", round(sewage_2016$urb_nuts, 4), "<br>")) %>% 
+        clearGroup("LTER Sites")}
+
+
     else {
-      proxy %>% clearGroup("LTER Sites") %>%  clearGroup("Observations")
+      proxy %>% clearGroup("LTER Sites") %>% clearGroup("Observations")
     } 
     
     
@@ -293,15 +311,25 @@ server <- function(input, output, session) {
       else {
         proxy %>%  clearImages()
       }
+
+      updatePickerInput(session, "Additional", selected = "")
+      updatePickerInput(session, "Other", selected = "")
+      
+
     }, ignoreNULL = F)           
   
   
   #clear button
-  observeEvent({input$Clear},
+  observeEvent(input$Clear,{
       
       if(!is.null(input$Clear) &&  input$Clear == "Clear"){
-        proxy %>% clearImages()
-    
+        proxy %>% clearImages() %>% clearGroup("LTER Sites") %>% clearGroup("Observations")
+      }
+    updatePickerInput(session, "Variable", selected = "")
+    updatePickerInput(session, "Month", selected = "")
+    updatePickerInput(session, "Additional", selected = "")
+    updatePickerInput(session, "Other", selected = "")
+    updateCheckboxGroupButtons(session, "Clear", selected = "")
     }, ignoreNULL = F)  
   
   
@@ -342,8 +370,11 @@ server <- function(input, output, session) {
                                   opacity = 0.7, layerId = "Bathymetry")}
       
       else {
-        proxy %>% clearImages()
+        proxy %>% clearImages() %>% clearShapes()
       }
+      
+      
+
     }, ignoreNULL = F)
   
   

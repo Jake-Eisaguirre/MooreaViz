@@ -455,46 +455,75 @@ latitude <- c(-17.47185366, -17.47185366, -17.48641792, -17.48641792, -17.471853
 longitude <- c(-149.8455917, -149.829821, -149.829821, -149.8455917, -149.8455917)
 
 lter_1 <- data.frame(longitude, latitude) %>% 
-  mutate(site = 1)
+  mutate(site = 1)%>% 
+  st_as_sf(coords = c('longitude', 'latitude'), crs = crs)%>% 
+  mutate(geometry = st_combine(geometry)) %>% 
+  st_cast("POLYGON")
 
 
 latitude <- c(-17.46576169, -17.46576169, -17.48131958, -17.48131958, -17.46576169)
 longitude <- c(-149.8116849, -149.7961685, -149.7961685, -149.8116849, -149.8116849)
 
 lter_2 <- data.frame(longitude, latitude) %>% 
-  mutate(site = 2)
+  mutate(site = 2)%>% 
+  st_as_sf(coords = c('longitude', 'latitude'), crs = crs)%>% 
+  mutate(geometry = st_combine(geometry)) %>% 
+  st_cast("POLYGON")
 
 
 latitude <- c(-17.50382025, -17.50382025, -17.52087158, -17.52087158, -17.50382025)
 longitude <- c(-149.7708619, -149.7519968, -149.7519968, -149.7708619, -149.7708619)
 
 lter_3 <- data.frame(longitude, latitude) %>% 
-  mutate(site = 3)
+  mutate(site = 3)%>% 
+  st_as_sf(coords = c('longitude', 'latitude'), crs = crs)%>% 
+  mutate(geometry = st_combine(geometry)) %>% 
+  st_cast("POLYGON")
 
 
 latitude <- c(-17.53305021, -17.53305021, -17.55064263, -17.55064263, -17.53305021)
 longitude <- c(-149.7772857, -149.7566866, -149.7566866, -149.7772857, -149.7772857)
 
 lter_4 <- data.frame(longitude, latitude) %>% 
-  mutate(site = 4)
+  mutate(site = 4)%>% 
+  st_as_sf(coords = c('longitude', 'latitude'), crs = crs)%>% 
+  mutate(geometry = st_combine(geometry)) %>% 
+  st_cast("POLYGON")
 
 
 latitude <- c(-17.56818162, -17.56818162, -17.59182383, -17.59182383, -17.56818162)
 longitude <- c(-149.8869755, -149.8561009, -149.8561009, -149.8869755, -149.8869755)
 
 lter_5 <- data.frame(longitude, latitude) %>% 
-  mutate(site = 5)
+  mutate(site = 5)%>% 
+  st_as_sf(coords = c('longitude', 'latitude'), crs = crs)%>% 
+  mutate(geometry = st_combine(geometry))%>% 
+  st_cast("POLYGON")
 
 
 latitude <- c(-17.50735955, -17.50735955, -17.52839766, -17.52839766, -17.50735955)
 longitude <- c(-149.934537, -149.9115336, -149.9115336, -149.934537, -149.934537)
 
 lter_6 <- data.frame(longitude, latitude) %>% 
-  mutate(site = 6)
+  mutate(site = 6) %>% 
+  st_as_sf(coords = c('longitude', 'latitude'), crs = crs) %>%
+  mutate(geometry = st_combine(geometry))%>% 
+  st_cast("POLYGON")
 
 site_poly <- rbind(lter_1, lter_2, lter_3, lter_4, lter_5, lter_6)
 
+plot(site_poly)
+
 write_csv(site_poly, here("data", "csv", "site_poly.csv"))
+
+leaflet() %>% 
+  addProviderTiles("Esri.WorldImagery") %>% 
+  addPolygons(data = lter_1) %>% 
+  addPolygons(data = lter_2) %>% 
+  addPolygons(data = lter_3) %>% 
+  addPolygons(data = lter_4) %>% 
+  addPolygons(data = lter_5) %>% 
+  addPolygons(data = lter_6) 
 
 ```
 
