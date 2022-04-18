@@ -100,6 +100,7 @@ spatial_brick <- here("data", "spatial_brick.nc")
 
 spatial_brick <- brick(spatial_brick)
 
+
 #crs 
 crs <- 2976
 
@@ -139,6 +140,10 @@ pal_bleach <- colorNumeric(palette = viridis((25), option = "plasma"), domain = 
 # sewage 
 sew_dat <- as.data.frame(rasterToPoints(spatial_brick[[8]]))
 pal_sewage <- colorNumeric(palette = viridis((25), option = "plasma"), domain = sewage_data$var1.pred, reverse = TRUE)
+
+# lidar 
+bathy_df <- as.data.frame(rasterToPoints(spatial_brick[[9]]))
+pal_bathy <- colorNumeric(palette = viridis((25), option = "plasma"), domain = bathy_df$layer, reverse = TRUE)
 
 # polygon data
 latitude <- c(-17.47185366, -17.47185366, -17.48641792, -17.48641792, -17.47185366)
