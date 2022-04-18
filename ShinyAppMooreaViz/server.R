@@ -352,7 +352,7 @@ server <- function(input, output, session) {
   observeEvent(input$Clear,{
       
       if(!is.null(input$Clear) &&  input$Clear == "Clear"){
-        proxy %>% clearImages() %>% clearGroup("LTER Sites") %>% clearGroup("Observations")
+        proxy %>% clearImages() %>% clearGroup("LTER Sites") %>% clearGroup("Observations") %>% clearControls()
       }
     updatePickerInput(session, "Variable", selected = "")
     updatePickerInput(session, "Month", selected = "")
