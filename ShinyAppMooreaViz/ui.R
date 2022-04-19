@@ -33,6 +33,10 @@ ui <- fluidPage(
                         #spatial map ----
                         tabPanel(title = "Map",
                                  
+                                 mainPanel(leafletOutput(outputId = "leaflet_base",
+                                                         width = 900,
+                                                         height = 500), position = c("right")),
+                                 
                                  sidebarLayout(
                                  
                                  fluidRow(
@@ -91,11 +95,7 @@ ui <- fluidPage(
                                                           width = 150),                                                 
                                               checkboxGroupButtons(inputId = "Clear",
                                                                    label = "Remove Layers",
-                                                                   choices = c("Clear")))))),
-
-                                          mainPanel(leafletOutput(outputId = "leaflet_base", 
-                                                    width = 900,
-                                                    height = 500), position = c("right"))),
+                                                                   choices = c("Clear"))))))),
                         
                         
                         
