@@ -49,7 +49,11 @@ server <- function(input, output, session) {
                        input$Temp_Variable == "mean_biomass_p_consumers" ~ "fish axis",
                        input$Temp_Variable == "cots_density" ~ "cots axis"),
          x = 'Year',
-         color = 'Site') +
+         color = 'Site',
+         title = case_when(input$Temp_Variable == "mean_coral_cover" ~ "coral title",
+                           input$Temp_Variable == "mean_algae_cover" ~ "algae title",
+                           input$Temp_Variable == "mean_biomass_p_consumers" ~ "fish title",
+                           input$Temp_Variable == "cots_density" ~ "cots title")) +
     scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1),
