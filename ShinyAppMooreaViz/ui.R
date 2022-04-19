@@ -32,9 +32,13 @@ ui <- fluidPage(
                         
                         #spatial map ----
                         tabPanel(title = "Map",
+                                 
+                                 sidebarLayout(
+                                 
+                                 fluidRow(
                                  #leaflet map inputs
                                  
-                                 sidebarPanel(width = 2,
+                                 column(12, sidebarPanel(width = 2,
                                               # Code block for incorporating more years of data
                                               #pickerInput(inputId = "Year",
                                               #label = "Select a Year:",
@@ -62,7 +66,9 @@ ui <- fluidPage(
                                                           choices = c("Percent Nitrogen", 
                                                                       "Isotopic Nitrogen"),
                                                           options = pickerOptions(title = "Select Variable"),
-                                                          width = 150), 
+                                                          width = 150)))),
+                                 fluidRow(
+                                 column(12, sidebarPanel(width = 2,
 
                                               
                                               pickerInput(inputId = "Additional",
@@ -85,10 +91,11 @@ ui <- fluidPage(
                                                           width = 150),                                                 
                                               checkboxGroupButtons(inputId = "Clear",
                                                                    label = "Remove Layers",
-                                                                   choices = c("Clear")),),
-                                 mainPanel(leafletOutput(outputId = "leaflet_base", 
-                                                         width = 900,
-                                                         height = 500))),
+                                                                   choices = c("Clear")))))),
+
+                                          mainPanel(leafletOutput(outputId = "leaflet_base", 
+                                                    width = 900,
+                                                    height = 500), position = c("right"))),
                         
                         
                         
