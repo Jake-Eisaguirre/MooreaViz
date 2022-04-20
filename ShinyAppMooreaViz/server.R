@@ -270,7 +270,7 @@ server <- function(input, output, session) {
   })
   
   
-
+  
   #sync button
   proxy <- leafletProxy("leaflet_base", session)
   
