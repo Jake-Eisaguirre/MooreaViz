@@ -17,6 +17,8 @@ library(ggvoronoi)
 library(car)
 library(dismo)
 library(spatstat)
+library(leafem)
+library(mapview)
 
 # Load Data ----
 

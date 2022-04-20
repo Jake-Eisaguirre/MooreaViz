@@ -33,16 +33,14 @@ ui <- fluidPage(
                         #spatial map ----
                         tabPanel(title = "Map",
                                  
-                                 mainPanel(leafletOutput(outputId = "leaflet_base",
-                                                         width = 900,
-                                                         height = 500), position = c("right")),
+                                 
                                  
                                  sidebarLayout(
                                  
                                  fluidRow(
                                  #leaflet map inputs
                                  
-                                 column(12, sidebarPanel(width = 2,
+                                 column(3, sidebarPanel(width = 10,
                                               # Code block for incorporating more years of data
                                               #pickerInput(inputId = "Year",
                                               #label = "Select a Year:",
@@ -70,7 +68,14 @@ ui <- fluidPage(
                                                           choices = c("Percent Nitrogen", 
                                                                       "Isotopic Nitrogen"),
                                                           options = pickerOptions(title = "Select Variable"),
-                                                          width = 150)))),
+                                                          width = 150),
+                                              checkboxGroupButtons(inputId = "Clear_2",
+                                                                   label = "Remove Layers",
+                                                                   choices = c("Clear")))),
+                                 
+                                 column(9, leafletOutput(outputId = "leaflet_base",
+                                                         width = 800,
+                                                         height = 500), position = c("right"))),
                                  fluidRow(
                                  column(12, sidebarPanel(width = 2,
 
@@ -93,7 +98,7 @@ ui <- fluidPage(
                                                           multiple = F,
                                                           options = pickerOptions(title = "Select Add On"),
                                                           width = 150),                                                 
-                                              checkboxGroupButtons(inputId = "Clear",
+                                              checkboxGroupButtons(inputId = "Clear_1",
                                                                    label = "Remove Layers",
                                                                    choices = c("Clear"))))))),
                         

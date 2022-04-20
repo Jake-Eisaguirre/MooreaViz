@@ -26,7 +26,14 @@ server <- function(input, output, session) {
     #base map
     leaflet(crs) %>% 
       addProviderTiles("Esri.WorldImagery") %>% 
-      setView(-149.829529, -17.538843, zoom = 11.5)
+      setView(-149.829529, -17.538843, zoom = 11.5) %>% 
+      addMouseCoordinates() %>% 
+      addMeasure(
+        position = "bottomleft",
+        primaryLengthUnit = "feet",
+        primaryAreaUnit = "sqfeet",
+        activeColor = "#3D535D",
+        completedColor = "#7D4479")
     
   })
   
@@ -278,7 +285,9 @@ server <- function(input, output, session) {
                          layerId = "January") %>%
           addLegend(data = jan_data, title = 'Percent N', pal = pal_jan, 
                     position = "bottomright", values = ~X1, opacity = 1, 
-                    group = "January N", labFormat = labelFormat(transform = function(X1) sort(X1, decreasing = TRUE)))
+                    group = "January N", labFormat = labelFormat(transform = function(X1) sort(X1, decreasing = TRUE))) %>% 
+          addImageQuery(jan_n(), type="mousemove", digits=2, 
+                        position="topright")
       }
       
       else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
@@ -349,17 +358,30 @@ server <- function(input, output, session) {
   
   
   #clear button
-  observeEvent(input$Clear,{
+  observeEvent(input$Clear_1,{
       
-      if(!is.null(input$Clear) &&  input$Clear == "Clear"){
+      if(!is.null(input$Clear_1) &&  input$Clear_1 == "Clear"){
         proxy %>% clearImages() %>% clearGroup("LTER Sites") %>% clearGroup("Observations") %>% clearControls()
       }
     updatePickerInput(session, "Variable", selected = "")
     updatePickerInput(session, "Month", selected = "")
     updatePickerInput(session, "Additional", selected = "")
     updatePickerInput(session, "Other", selected = "")
-    updateCheckboxGroupButtons(session, "Clear", selected = "")
+    updateCheckboxGroupButtons(session, "Clear_1", selected = "")
     }, ignoreNULL = F)  
+  
+  #clear button
+  observeEvent(input$Clear_2,{
+    
+    if(!is.null(input$Clear_2) &&  input$Clear_2 == "Clear"){
+      proxy %>% clearImages() %>% clearGroup("LTER Sites") %>% clearGroup("Observations") %>% clearControls()
+    }
+    updatePickerInput(session, "Variable", selected = "")
+    updatePickerInput(session, "Month", selected = "")
+    updatePickerInput(session, "Additional", selected = "")
+    updatePickerInput(session, "Other", selected = "")
+    updateCheckboxGroupButtons(session, "Clear_2", selected = "")
+  }, ignoreNULL = F)  
   
   
   # reactive coral belach
