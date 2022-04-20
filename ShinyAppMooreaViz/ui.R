@@ -153,17 +153,21 @@ ui <- fluidPage(
 
                                  mainPanel(
                                    fluidRow(
-                                     box(width = 6,
-                                         title = "Plot 1")),
+                                     box(width = 12,
+                                         title = "Plot 1",
+                                         plotOutput(outputId = "test_coral_plot"))),
                                    fluidRow(
-                                     box(width = 6,
-                                            title = "Plot 2")),
+                                     box(width = 12,
+                                         title = "Plot 2",
+                                         plotOutput(outputId = "test_algae_plot"))),
                                    fluidRow(
-                                     box(width = 6,
-                                            title = "Plot 3")),
+                                     box(width = 12,
+                                         title = "Plot 3",
+                                         plotOutput(outputId = "test_cots_plot"))),
                                    fluidRow(
-                                     box(width = 6,
-                                            title = "Plot 4")))
+                                     box(width = 12,
+                                         title = "Plot 4",
+                                         plotOutput(outputId = "test_biomass_plot"))))
                                    ), 
                         
                         #temporal metadata ----
