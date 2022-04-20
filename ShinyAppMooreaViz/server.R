@@ -269,7 +269,7 @@ server <- function(input, output, session) {
     spatial_brick[[6]]
   })
   
-  
+   
   
   #sync button
   proxy <- leafletProxy("leaflet_base", session)
