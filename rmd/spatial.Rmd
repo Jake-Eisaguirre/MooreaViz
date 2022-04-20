@@ -28,6 +28,7 @@ library(car)
 library(dismo)
 library(spatstat)
 library(rgdal)
+library(ncdf4)
 
 ```
 
@@ -441,8 +442,8 @@ bathy_raster_filtered <- raster(crs = crs, vals = 0, resolution = c(5, 5), ext =
 # Create Raster Brick of Spatial layers
 ```{r}
 
-spatial_brick <- brick(jan_ras, may_ras, july_ras, jan_ras_i, may_ras_i, july_ras_i, bleach_raster, sewage_ras, bathy_raster_filtered, crs = crs) %>% 
-  projectRaster(crs = "+proj=utm +zone=6 +datum=WGS84 +units=m +no_defs")
+spatial_brick <- brick(jan_ras, may_ras, july_ras, jan_ras_i, may_ras_i, july_ras_i, bleach_raster, sewage_ras, bathy_raster_filtered, crs = crs) 
+
 
 writeRaster(spatial_brick, here("data", "spatial_brick.nc"), format = "CDF", overwrite = T)
 ```

@@ -37,10 +37,7 @@ ui <- fluidPage(
                                  
                                  sidebarLayout(
                                  
-                                 fluidRow(
-                                 #leaflet map inputs
-                                 
-                                 column(3, sidebarPanel(width = 10,
+                                 sidebarPanel(width = 3,
                                               # Code block for incorporating more years of data
                                               #pickerInput(inputId = "Year",
                                               #label = "Select a Year:",
@@ -71,14 +68,9 @@ ui <- fluidPage(
                                                           width = 150),
                                               checkboxGroupButtons(inputId = "Clear_2",
                                                                    label = "Remove Layers",
-                                                                   choices = c("Clear")))),
-                                 
-                                 column(9, leafletOutput(outputId = "leaflet_base",
-                                                         width = 800,
-                                                         height = 500), position = c("right"))),
-                                 fluidRow(
-                                 column(12, sidebarPanel(width = 2,
-
+                                                                   choices = c("Clear")),
+                                              
+                                              hr(style = "border-top: 1px solid #000000;"),
                                               
                                               pickerInput(inputId = "Additional",
                                                                    label = "Select Another Layer:",
@@ -100,7 +92,11 @@ ui <- fluidPage(
                                                           width = 150),                                                 
                                               checkboxGroupButtons(inputId = "Clear_1",
                                                                    label = "Remove Layers",
-                                                                   choices = c("Clear"))))))),
+                                                                   choices = c("Clear"))),
+                                
+                        mainPanel(leafletOutput(outputId = "leaflet_base",
+                                                         width = 800,
+                                                         height = 500), position = c("right")))),
                         
                         
                         
