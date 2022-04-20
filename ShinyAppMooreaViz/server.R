@@ -1,23 +1,9 @@
 
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
-
-
-
 source(here("ShinyAppMooreaViz", "global.R"))
-
-
-
 
 # Server ----
 # Runs the r code to make the visualizations and transform the data for your app to function
-# Define server logic required to draw a histogram
+
 server <- function(input, output, session) {
   
   #leaflet outputs ----

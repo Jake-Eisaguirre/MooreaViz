@@ -20,6 +20,7 @@ library(spatstat)
 library(ggplot2)
 library(patchwork)
 library(shinydashboard)
+library(fontawesome)
 
 # Load Data ----
 
