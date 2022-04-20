@@ -104,8 +104,26 @@ ui <- fluidPage(
                         
                         
                         
-                        #spatila metadata ----
-                        tabPanel("Metadata")), 
+                        #spatial metadata ----
+                        
+                        
+                        tabPanel("Metadata", 
+                            fluidPage(
+                            titlePanel("This is the metadata for spatial"),
+                            sidebarLayout(
+                              sidebarPanel(width = 5, 
+                                           h3("This is the Nitrogen Data"), 
+                                           h4("Isotopic Nitrogen"), 
+                                           p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually."),
+                                           h4("Percent Nitrogen"), 
+                                           p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually."),
+                                           h3("This is Coral Bleaching data"), 
+                                           p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually.")
+                                           ),
+                              
+                              mainPanel(width = 6, 
+                                        img(src = "MCR60441.jpg", height = 400, width = 400))
+                              )))), 
              
              #Temporal page ----
              navbarMenu("Temporal", icon = icon("chart-line"),
@@ -169,16 +187,25 @@ ui <- fluidPage(
                                    ))), 
                         
                         #temporal metadata ----
-                        tabPanel("Metadata"), 
-                        
-                        
-                        "Fish Transects",
-                        p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually. "),
-                        
-                        
-             ) 
-             
-  
-))
+                        tabPanel("Metadata",
+                                 tabsetPanel(
+                                   tabPanel("Mean Coral Cover", 
+                                            sidebarLayout(
+                                              sidebarPanel(width = 5, 
+                                                           h3("Background"), 
+                                                           h4("Isotopic Nitrogen"), 
+                                                           p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually."),
+                                                           h3("Data Collection"), 
+                                                           p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually.")
+                                              ),
+                                              
+                                              mainPanel(width = 6, 
+                                                        img(src = "MCR60441.jpg", height = 400, width = 400))
+                                            )),
+                                   tabPanel("Mean Algae Cover"),
+                                   tabPanel("Mean Fish Biomass"),
+                                   tabPanel("Crown of Thorns Density")
+                                   
+                                  )))))
 
 
