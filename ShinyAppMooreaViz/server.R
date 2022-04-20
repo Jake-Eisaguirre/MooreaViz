@@ -241,9 +241,8 @@ server <- function(input, output, session) {
                          layerId = "January") %>%
           addLegend(data = jan_data, title = 'Percent N', pal = pal_jan, 
                     position = "bottomright", values = ~X1, opacity = 1, 
-                    group = "January N", labFormat = labelFormat(transform = function(X1) sort(X1, decreasing = TRUE))) %>% 
-          addImageQuery(jan_n(), type="mousemove", digits=2, 
-                        position="topright")
+                    group = "January N", labFormat = labelFormat(transform = function(X1) sort(X1, decreasing = TRUE)))
+         
       }
       
       else if(!is.null(input$Month) && !is.null(input$Variable) && input$Month == "January" 
