@@ -29,24 +29,23 @@ server <- function(input, output, session) {
   #         dplyr::select(year, site, input$Variable)
   # }) 
   
+  #figures by variable output ----
   output$faceted_plot <- renderPlot({
     ggplot(data = temporal_data, aes_string(x = "year", y = input$Temp_Variable)) +
       geom_point(aes(color = site)) +
       geom_line(aes(group = site, color = site)) +
       facet_wrap(~site) +
-    labs(title = 'INSERT TITLE',
+    labs(title = case_when(input$Temp_Variable == "mean_coral_cover" ~ "coral title",
+                           input$Temp_Variable == "mean_algae_cover" ~ "algae title",
+                           input$Temp_Variable == "mean_biomass_p_consumers" ~ "fish title",
+                           input$Temp_Variable == "cots_density" ~ "cots title"),
          subtitle = 'Moorea, French Polynesia (2005 - 2018)',
-         # y = 'Density (count/m^2)', # use case_when() to designate label based on user input of variable?
          y = case_when(input$Temp_Variable == "mean_coral_cover" ~ "coral axis",
                        input$Temp_Variable == "mean_algae_cover" ~ "algae axis",
                        input$Temp_Variable == "mean_biomass_p_consumers" ~ "fish axis",
                        input$Temp_Variable == "cots_density" ~ "cots axis"),
          x = 'Year',
-         color = 'Site',
-         title = case_when(input$Temp_Variable == "mean_coral_cover" ~ "coral title",
-                           input$Temp_Variable == "mean_algae_cover" ~ "algae title",
-                           input$Temp_Variable == "mean_biomass_p_consumers" ~ "fish title",
-                           input$Temp_Variable == "cots_density" ~ "cots title")) +
+         color = 'Site') +
     scale_color_manual(values = c('#40B5AD', '#87CEEB', '#4682B4', '#6F8FAF', '#9FE2BF', '#6495ED')) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1),
@@ -57,9 +56,8 @@ server <- function(input, output, session) {
           plot.title = element_text(size = 16))
   })
   
-
   
-  #temporal outputs ----
+  #figures by site outputs ----
   temporal_reactive_df <- reactive({validate(
     need(length(input$site) > 0, "Please select at least one site to visualize.")
   )
@@ -67,8 +65,6 @@ server <- function(input, output, session) {
       filter(site %in% input$site)
   }) 
   
-  
-  #variables by site outputs ----
   
   output$variables_by_site_plot <- renderPlot({
     coral_plot <- ggplot(data = temporal_reactive_df(), aes(x = year, y = mean_coral_cover)) +
@@ -101,6 +97,51 @@ server <- function(input, output, session) {
       plot_layout(ncol = 1, heights = c(1, 1, 1, 1))
   })
   
+  # plots for temporal option 2 tab 
+  temporal_reactive_df_2 <- reactive({validate(
+    need(length(input$site_2) > 0, "Please select at least one site to visualize.")
+  )
+    temporal_data %>%
+      filter(site %in% input$site_2)
+  }) 
+  
+  # test_coral_plot
+  output$test_coral_plot <- renderPlot({
+    ggplot(data = temporal_reactive_df_2(), aes(x = year, y = mean_coral_cover)) +
+      geom_point(aes(color = site)) +
+      geom_line(aes(group = site, color = site)) +
+      labs(x = "",
+           y = expression(atop("Mean Coral Cover", paste(paste("(% per 0.25 ", m^{2}, ")"))))) +
+      ylim(0, NA)
+  })
+  
+  # test_algae_plot 
+  output$test_algae_plot <- renderPlot({
+      ggplot(data = temporal_reactive_df_2(), aes(x = year, y = mean_algae_cover)) +
+      geom_point(aes(color = site)) +
+      geom_line(aes(group = site, color = site)) +
+      labs(x = "Year",
+           y = expression(atop("Mean Algae Cover", paste(paste("(% per 0.25 ", m^{2}, ")"))))) +
+      ylim(0, NA)
+  })
+  
+  # test_cots_plot
+  output$test_cots_plot <- renderPlot({
+    ggplot(data = temporal_reactive_df_2(), aes(x = year, y = cots_density)) +
+      geom_point(aes(color = site)) +
+      geom_line(aes(group = site, color = site)) +
+      labs(x = "",
+           y = expression(atop("COTS Density", paste(paste("(Count per ", m^{2}, ")")))))
+  })
+  
+  # test biomass plot 
+  output$test_biomass_plot <- renderPlot({
+    ggplot(data = temporal_reactive_df_2(), aes(x = year, y = mean_biomass_p_consumers)) +
+      geom_point(aes(color = site)) +
+      geom_line(aes(group = site, color = site)) +
+      labs(x = "",
+           y = expression(atop("Mean Fish Biomass", paste(paste("(% per 0.25 ", m^{2}, ")")))))
+  })
   
   
   # reactive observations and data filtering
