@@ -12,7 +12,7 @@ ui <- fluidPage(
               img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
   
 
-  # Navigatition bar ----
+  # Navigation bar ----
   navbarPage("", 
              
              #home page ----
@@ -153,32 +153,26 @@ ui <- fluidPage(
 
                                  mainPanel(
                                    fluidRow(
-                                     column(width = 6,
-                                            column(width = 6,
-                                                   box(width = 6,
-                                                       title = "Plot 1"),
-                                                   box(width = 6,
-                                                       title = "Plot 2"),
-                                                   box(width = 6,
-                                                       title = "Plot 3"),
-                                                   box(width = 6,
-                                                       title = "Plot 4")))
-                                          
-                                          #box(plotOutput(outputId = "variables_by_site_plot_2")),
-                                          #box("put 2nd output here...")
-                                   ))), 
+                                     box(width = 6,
+                                         title = "Plot 1")),
+                                   fluidRow(
+                                     box(width = 6,
+                                            title = "Plot 2")),
+                                   fluidRow(
+                                     box(width = 6,
+                                            title = "Plot 3")),
+                                   fluidRow(
+                                     box(width = 6,
+                                            title = "Plot 4")))
+                                   ), 
                         
                         #temporal metadata ----
-                        tabPanel("Metadata"), 
-                        
-                        
-                        "Fish Transects",
-                        p("These data describe the species abundance and size distributions of fishes surveyed as part of MCR LTER's annual reef fish monitoring program. This study began in 2005 and the dataset is updated annually. "),
+                        tabPanel("Metadata")) 
                         
                         
              ) 
              
   
-))
+)
 
 
