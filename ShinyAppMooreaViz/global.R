@@ -17,6 +17,7 @@ library(ggvoronoi)
 library(car)
 library(dismo)
 library(spatstat)
+library(fontawesome)
 
 # Load Data ----
 
