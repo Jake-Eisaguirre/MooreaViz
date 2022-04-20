@@ -11,6 +11,7 @@ ui <- fluidPage(
               img(src = "lter_logo.png", height = 60, width = 70, align = "right"), 
               img(src = "nsf_logo.png", height = 60, width = 60, align = "right"))),
   
+
   # Navigatition bar ----
   navbarPage("", 
              
@@ -80,10 +81,6 @@ ui <- fluidPage(
                         tabPanel("Figures by Variable",
                                  (pickerInput(inputId = "Temp_Variable",
                                               label = "Select a Variable",
-                                              # choices = c("Crown of Thorns", 
-                                              #             "Coral Cover", 
-                                              #             "Fish Biomass", 
-                                              #             "Algae"),
                                               choices = c("Mean Coral Cover" = "mean_coral_cover",
                                                           "Mean Algae Cover" = "mean_algae_cover",
                                                           "Mean Fish Biomass" = "mean_biomass_p_consumers",
@@ -104,6 +101,40 @@ ui <- fluidPage(
                                                                                 "Site 6" = "LTER 6"))),
                                  mainPanel(plotOutput(outputId = "variables_by_site_plot"))),
                         
+
+                        #figures by site option 2 ----
+                        useShinydashboard(),
+
+                        tabPanel("Figures by Site (option 2)",
+                                 column(width = 4,
+                                        box(checkboxGroupInput(inputId = "site_2",
+                                                               label = h4("Choose your Site"),
+                                                               selected = "LTER 1",
+                                                               choices = list("Site 1" = "LTER 1",
+                                                                              "Site 2" = "LTER 2",
+                                                                              "Site 3" = "LTER 3",
+                                                                              "Site 4" = "LTER 4",
+                                                                              "Site 5" = "LTER 5",
+                                                                              "Site 6" = "LTER 6")))
+                                   ),
+
+                                 mainPanel(
+                                   fluidRow(
+                                     column(width = 6,
+                                            column(width = 6,
+                                                   box(width = 6,
+                                                       title = "Plot 1"),
+                                                   box(width = 6,
+                                                       title = "Plot 2"),
+                                                   box(width = 6,
+                                                       title = "Plot 3"),
+                                                   box(width = 6,
+                                                       title = "Plot 4")))
+                                          
+                                          #box(plotOutput(outputId = "variables_by_site_plot_2")),
+                                          #box("put 2nd output here...")
+                                   ))), 
+                        
                         #temporal metadata ----
                         tabPanel("Metadata"), 
                         
@@ -114,7 +145,7 @@ ui <- fluidPage(
                         
              ) 
              
-  )
-)
+  
+))
 
 
