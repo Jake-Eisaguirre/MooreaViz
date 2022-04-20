@@ -19,7 +19,7 @@ server <- function(input, output, session) {
         primaryLengthUnit = "feet",
         primaryAreaUnit = "sqfeet",
         activeColor = "#3D535D",
-        completedColor = "#7D4479")
+        completedColor = "#7D4479") 
     
   })
   

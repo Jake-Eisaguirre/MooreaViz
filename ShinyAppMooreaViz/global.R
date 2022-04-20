@@ -23,6 +23,7 @@ library(ggplot2)
 library(patchwork)
 library(shinydashboard)
 library(fontawesome)
+library(ncdf4)
 
 # Load Data ----
 
@@ -106,7 +107,6 @@ spatial_brick <- here("data", "spatial_brick.nc")
 
 spatial_brick <- brick(spatial_brick)
 
-crs(spatial_brick) <- sp::CRS("+proj=utm +zone=6 +south +ellps=intl +towgs84=162,117,154,0,0,0,0 +units=m +no_defs")
 
 #crs 
 crs <- 3297
