@@ -19,6 +19,10 @@ library(dismo)
 library(spatstat)
 library(leafem)
 library(mapview)
+library(ggplot2)
+library(patchwork)
+library(shinydashboard)
+library(fontawesome)
 
 # Load Data ----
 
