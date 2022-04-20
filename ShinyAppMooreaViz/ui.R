@@ -32,9 +32,15 @@ ui <- fluidPage(
                         
                         #spatial map ----
                         tabPanel(title = "Map",
+                                 
+                                 
+                                 
+                                 sidebarLayout(
+                                 
+                                 fluidRow(
                                  #leaflet map inputs
                                  
-                                 sidebarPanel(width = 2,
+                                 column(3, sidebarPanel(width = 10,
                                               # Code block for incorporating more years of data
                                               #pickerInput(inputId = "Year",
                                               #label = "Select a Year:",
@@ -43,31 +49,58 @@ ui <- fluidPage(
                                               #"2018"),
                                               #multiple = FALSE,
                                               #width = 80),
-                                              checkboxGroupButtons(inputId = "Month",
-                                                                   label = "Select a Month:",
+                                              
+                                              
+                                              pickerInput(inputId = "Month",
+                                                                   label = "First, Select Month:",
                                                                    choices = c("January", 
                                                                                "May", 
                                                                                "July"),
-                                                                   width = 80), 
-                                              checkboxGroupButtons(inputId = "Variable",
-                                                                   label = "Select a Variable:",
-                                                                   choices = c("Percent Nitrogen", 
-                                                                               "Isotopic Nitrogen"),
-                                                                   width = 80), 
-                                              checkboxGroupButtons(inputId = "Additional",
-                                                                   label = "Select Aditional Layer",
+                                                          selected = "",
+                                                          multiple = F,
+                                                          options = pickerOptions(title = "Select Month"),
+                                                                   width = 150), 
+                                              
+                                              pickerInput(inputId = "Variable",
+                                                          selected = "",
+                                                          multiple = F,
+                                                          label = "Now, Select Variable:",
+                                                          choices = c("Percent Nitrogen", 
+                                                                      "Isotopic Nitrogen"),
+                                                          options = pickerOptions(title = "Select Variable"),
+                                                          width = 150),
+                                              checkboxGroupButtons(inputId = "Clear_2",
+                                                                   label = "Remove Layers",
+                                                                   choices = c("Clear")))),
+                                 
+                                 column(9, leafletOutput(outputId = "leaflet_base",
+                                                         width = 800,
+                                                         height = 500), position = c("right"))),
+                                 fluidRow(
+                                 column(12, sidebarPanel(width = 2,
+
+                                              
+                                              pickerInput(inputId = "Additional",
+                                                                   label = "Select Another Layer:",
                                                                    choices = c("Percent Coral Bleached", 
                                                                                "Predicted Sewage",
                                                                                "Bathymetry"),
-                                                                   width = 80),
-                                              checkboxGroupButtons(inputId = "Other",
+                                                          selected = NULL,
+                                                          multiple = F,
+                                                          options = pickerOptions(title = "Select Additonal"),
+                                                                   width = 150),
+                                              pickerInput(inputId = "Other",
                                                                    label = "Select an Add on:",
                                                                    choices = c("LTER Sites", 
-                                                                               "Observations"),
-                                                                   width = 80)),
-                                 mainPanel(leafletOutput(outputId = "leaflet_base", 
-                                                         width = 900,
-                                                         height = 500))),
+                                                                               "Observations",
+                                                                               "Sites & Observations"),
+                                                          selected = NULL,
+                                                          multiple = F,
+                                                          options = pickerOptions(title = "Select Add On"),
+                                                          width = 150),                                                 
+                                              checkboxGroupButtons(inputId = "Clear_1",
+                                                                   label = "Remove Layers",
+                                                                   choices = c("Clear"))))))),
                         
                         
                         
